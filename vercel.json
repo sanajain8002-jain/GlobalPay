@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "name": "globalpay-2-0",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

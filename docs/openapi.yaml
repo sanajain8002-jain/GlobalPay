@@ -1,0 +1,106 @@
+openapi: 3.1.0
+info:
+  title: GlobalPay 2.0 Financial API
+  version: 2.0.0
+  description: >
+    Versioned REST API (/api/v1) for GlobalPay 2.0 supporting authentication,
+    multi-currency accounts, domestic P2P & QR payments, international transfer quotes,
+    expense splitting, smart spend analytics, GP Copilot, and RBAC administration.
+servers:
+  - url: http://localhost:4000/api/v1
+    description: Local Sandbox Development Server
+paths:
+  /system/health/liveness:
+    get:
+      summary: Liveness probe
+      responses:
+        "200":
+          description: Service process is alive
+  /system/health/readiness:
+    get:
+      summary: Readiness probe
+      responses:
+        "200":
+          description: Database and provider adapters are ready
+  /auth/register:
+    post:
+      summary: Register a new GlobalPay account
+      responses:
+        "201":
+          description: Account created and session established
+  /auth/login:
+    post:
+      summary: Authenticate with email and password
+      responses:
+        "200":
+          description: Authenticated session token and CSRF token
+  /auth/logout:
+    post:
+      summary: Revoke current session
+      responses:
+        "200":
+          description: Session revoked
+  /accounts:
+    get:
+      summary: List authenticated user's currency accounts and balances
+      responses:
+        "200":
+          description: List of currency accounts in integer minor units
+  /fx/rates:
+    get:
+      summary: Retrieve indicative mid-market exchange rates across 12 supported currencies
+      responses:
+        "200":
+          description: Indicative rates with timestamp and source attribution
+  /transfers/quotes:
+    post:
+      summary: Generate a time-limited, server-authoritative international transfer quote
+      responses:
+        "201":
+          description: Quote with fee breakdown, markup bps, and 5-minute expiry
+  /payments:
+    post:
+      summary: Execute an idempotent domestic P2P, QR, or international transfer
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Transaction state and receipt record
+  /transactions/{id}:
+    get:
+      summary: Retrieve transaction details and state event log (ownership enforced)
+      responses:
+        "200":
+          description: Transaction detail
+        "403":
+          description: Cross-user access denied
+  /transactions/{id}/refund:
+    post:
+      summary: Initiate a sandbox refund and credit back source account
+      responses:
+        "200":
+          description: Transaction transitioned to REFUNDED
+  /webhooks/provider:
+    post:
+      summary: Receive HMAC-SHA256 signed payment provider webhook events
+      responses:
+        "200":
+          description: Verified and deduplicated webhook outcome
+  /analytics/spending:
+    get:
+      summary: Retrieve category spend totals and budget progress (excluding refunds)
+      responses:
+        "200":
+          description: Spending analytics payload
+  /admin/overview:
+    get:
+      summary: Retrieve operational metrics, corridor registry, and redacted audit log (ADMIN role required)
+      responses:
+        "200":
+          description: Admin overview
+        "403":
+          description: Non-admin access denied

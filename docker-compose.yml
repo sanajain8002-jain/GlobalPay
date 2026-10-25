@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: globalpay_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: globalpay_user
+      POSTGRES_PASSWORD: globalpay_dev_password
+      POSTGRES_DB: globalpay_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - globalpay_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U globalpay_user -d globalpay_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: globalpay_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      FRONTEND_ORIGIN: http://localhost:5173
+      DATABASE_URL: postgresql://globalpay_user:globalpay_dev_password@postgres:5432/globalpay_db?schema=public
+      SESSION_SECRET: dev_only_session_secret_32_bytes_minimum_length_ok
+      JWT_ACCESS_SECRET: dev_only_jwt_secret_32_bytes_minimum_length_ok
+      CSRF_SECRET: dev_only_csrf_secret_32_bytes_minimum_length_ok
+      PAYMENT_PROVIDER_MODE: sandbox
+      PAYMENT_WEBHOOK_SECRET: whsec_dev_sandbox_secret_key
+    ports:
+      - "4000:4000"
+
+volumes:
+  globalpay_pgdata:

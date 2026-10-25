@@ -1,0 +1,19 @@
+# Dependencies & Builds
+node_modules/
+dist/
+build/
+target/
+__pycache__/
+*.pyc
+.vercel/
+.netlify/
+coverage/
+
+# Secrets & Environment Variables (NEVER COMMIT REAL SECRETS)
+.env
+.env.*
+!.env.example
+
+# Logs & OS
+*.log
+.DS_Store

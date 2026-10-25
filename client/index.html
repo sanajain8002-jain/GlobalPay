@@ -1,0 +1,3105 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GlobalPay 2.0 — Money moves. You move.</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.453.0/dist/umd/lucide.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            gp: {
+              bg: '#090714',
+              surface: '#120E24',
+              card: '#1A1433',
+              border: '#2E2359',
+              electric: '#6D28D9',
+              violet: '#8B5CF6',
+              lavender: '#C4B5FD',
+              mint: '#10B981',
+              amber: '#F59E0B',
+              rose: '#F43F5E',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+    .glass-panel {
+      background: rgba(26, 20, 51, 0.78);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(139, 92, 246, 0.22);
+    }
+    html:not(.dark) .glass-panel {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(109, 40, 217, 0.16);
+      box-shadow: 0 8px 30px rgba(109, 40, 217, 0.06);
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(139, 92, 246, 0.35);
+      border-radius: 9999px;
+    }
+    @media print {
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-gp-bg dark:text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+
+  <!-- TOP COMPLIANCE & SANDBOX ENVIRONMENT BANNER -->
+  <div class="bg-gradient-to-r from-gp-electric via-purple-700 to-indigo-800 text-white text-xs px-4 py-2 flex flex-wrap items-center justify-between gap-2 border-b border-purple-400/20 no-print">
+    <div class="flex items-center gap-2">
+      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-400/20 text-amber-200 border border-amber-300/30">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse"></span>
+        SANDBOX SIMULATION MODE
+      </span>
+      <span class="text-purple-100/90 hidden sm:inline">All balances, quotes, QR codes, and transfers use deterministic fictional sandbox records.</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span id="top-session-badge" class="font-mono text-[11px] text-purple-200">Session: Active</span>
+      <button type="button" onclick="window.gpResetSandboxData()" class="underline hover:text-amber-200 text-[11px] font-medium">Reset Demo Ledger</button>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION STACK -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+  <!-- MAIN APPLICATION SHELL -->
+  <div class="flex-1 flex flex-col lg:flex-row max-w-[1600px] w-full mx-auto">
+
+    <!-- LEFT SIDEBAR NAVIGATION (22 CONNECTED SCREENS) -->
+    <aside id="app-sidebar" class="w-full lg:w-72 shrink-0 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-gp-border bg-white/80 dark:bg-gp-surface/90 backdrop-blur-md flex flex-col justify-between no-print">
+      <div class="p-4 lg:p-5">
+        <div class="flex items-center justify-between gap-2 mb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gp-electric to-gp-violet flex items-center justify-center text-white font-extrabold text-lg shadow-lg shadow-purple-600/30">
+              GP
+            </div>
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="font-extrabold text-lg tracking-tight">GlobalPay</span>
+                <span class="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-gp-lavender font-semibold">v2.0</span>
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-purple-300/70">Money moves. You move.</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button type="button" id="theme-toggle-btn" onclick="window.gpToggleTheme()" title="Toggle Light/Dark Mode" class="p-2 rounded-lg border border-slate-200 dark:border-gp-border hover:bg-purple-500/10 text-xs font-medium">
+              Theme
+            </button>
+            <button type="button" id="mobile-nav-toggle" onclick="window.gpToggleMobileNav()" class="lg:hidden p-2 rounded-lg border border-slate-200 dark:border-gp-border text-xs font-semibold">
+              Screens
+            </button>
+          </div>
+        </div>
+
+        <!-- Active Persona Switcher / Status -->
+        <div id="sidebar-user-card" class="mb-4 p-3 rounded-xl bg-slate-100 dark:bg-gp-card border border-slate-200 dark:border-gp-border"></div>
+
+        <!-- Screen Search Filter -->
+        <div class="mb-2">
+          <input id="screen-jump-filter" type="text" oninput="window.gpRenderNav()" placeholder="Jump to any of 22 screens..." class="w-full px-3 py-1.5 text-xs rounded-lg bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border focus:outline-none focus:border-gp-violet" />
+        </div>
+
+        <!-- 22 Screen Navigation List -->
+        <nav id="sidebar-nav-list" class="space-y-1 max-h-60 lg:max-h-[calc(100vh-290px)] overflow-y-auto custom-scroll pr-1"></nav>
+      </div>
+
+      <div class="p-4 border-t border-slate-200 dark:border-gp-border text-[11px] text-slate-500 dark:text-purple-300/60 space-y-2">
+        <button type="button" onclick="window.gpNavigate('publish_hub')" class="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-xs shadow-md shadow-emerald-700/20 hover:opacity-95 flex items-center justify-between">
+          <span>Publish: GitHub • Render • Web</span>
+          <span class="font-mono text-[10px]">LIVE</span>
+        </button>
+        <div class="flex items-center justify-between">
+          <span>API: <code class="font-mono text-purple-500 dark:text-gp-lavender">/api/v1</code></span>
+          <button type="button" onclick="window.gpNavigate('admin')" class="text-purple-600 dark:text-gp-lavender hover:underline font-medium">Ops Console</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT VIEWPORT -->
+    <main class="flex-1 flex flex-col min-w-0">
+      <header class="px-4 sm:px-8 py-4 border-b border-slate-200 dark:border-gp-border flex flex-wrap items-center justify-between gap-3 bg-white/50 dark:bg-gp-surface/40 backdrop-blur-sm no-print">
+        <div>
+          <div class="flex items-center gap-2">
+            <span id="screen-number-pill" class="text-[11px] font-mono px-2 py-0.5 rounded bg-purple-600/15 text-purple-600 dark:text-gp-lavender font-semibold">Screen 03 / 22</span>
+            <h1 id="screen-header-title" class="text-lg sm:text-xl font-bold tracking-tight">Home Dashboard</h1>
+          </div>
+          <p id="screen-header-subtitle" class="text-xs text-slate-500 dark:text-purple-200/70">Authenticated real-time ledger balances, quick transfers, and spending insights</p>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+          <button type="button" onclick="window.gpToggleBalanceMask()" id="header-balance-mask-btn" class="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-300 dark:border-gp-border hover:bg-purple-500/10">
+            Hide Balances
+          </button>
+          <button type="button" onclick="window.gpNavigate('copilot')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600/20 text-purple-700 dark:text-gp-lavender border border-purple-500/30 hover:bg-purple-600/30">
+            GP Copilot
+          </button>
+          <button type="button" onclick="window.gpNavigate('notifications')" id="header-notif-btn" class="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-300 dark:border-gp-border hover:bg-purple-500/10">
+            Alerts (2)
+          </button>
+          <button type="button" id="header-logout-btn" onclick="window.gpLogout()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-300 border border-rose-500/30 hover:bg-rose-500/25">
+            Log Out
+          </button>
+        </div>
+      </header>
+
+      <section id="screen-viewport" class="flex-1 p-4 sm:p-8 max-w-6xl w-full mx-auto"></section>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      const STORAGE_KEY = 'globalpay_v2_ledger_state_v1';
+
+      const CURRENCIES = {
+        USD: { code: 'USD', symbol: '$', name: 'US Dollar', decimals: 2, transferable: true, country: 'US' },
+        EUR: { code: 'EUR', symbol: '€', name: 'Euro', decimals: 2, transferable: true, country: 'DE' },
+        GBP: { code: 'GBP', symbol: '£', name: 'British Pound', decimals: 2, transferable: true, country: 'GB' },
+        INR: { code: 'INR', symbol: '₹', name: 'Indian Rupee', decimals: 2, transferable: true, country: 'IN' },
+        JPY: { code: 'JPY', symbol: '¥', name: 'Japanese Yen', decimals: 0, transferable: true, country: 'JP' },
+        CAD: { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar', decimals: 2, transferable: true, country: 'CA' },
+        AUD: { code: 'AUD', symbol: 'A$', name: 'Australian Dollar', decimals: 2, transferable: true, country: 'AU' },
+        SGD: { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar', decimals: 2, transferable: true, country: 'SG' },
+        AED: { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham', decimals: 2, transferable: true, country: 'AE' },
+        CHF: { code: 'CHF', symbol: 'CHF', name: 'Swiss Franc', decimals: 2, transferable: true, country: 'CH' },
+        BRL: { code: 'BRL', symbol: 'R$', name: 'Brazilian Real', decimals: 2, transferable: false, country: 'BR' },
+        ZAR: { code: 'ZAR', symbol: 'R', name: 'South African Rand', decimals: 2, transferable: false, country: 'ZA' }
+      };
+
+      const USD_MID_RATES = {
+        USD: 1.0000,
+        EUR: 0.9245,
+        GBP: 0.7890,
+        INR: 83.9500,
+        JPY: 153.2000,
+        CAD: 1.3840,
+        AUD: 1.5180,
+        SGD: 1.3410,
+        AED: 3.6725,
+        CHF: 0.8815,
+        BRL: 5.6890,
+        ZAR: 17.8500
+      };
+
+      const SCREENS = [
+        { id: 'welcome', num: '01', title: 'Welcome & Onboarding', subtitle: 'Brand vision, compliance boundaries, and instant persona launchpad', public: true },
+        { id: 'auth', num: '02', title: 'Registration & Login', subtitle: 'Session authentication, account registration, and password recovery', public: true },
+        { id: 'dashboard', num: '03', title: 'Home Dashboard', subtitle: 'Multi-currency balances, quick actions, recent activity, and FX ticker' },
+        { id: 'qr', num: '04', title: 'Scan & Pay (QR)', subtitle: 'Camera & sandbox QR payload scanner with recipient verification' },
+        { id: 'domestic', num: '05', title: 'Pay a Contact', subtitle: 'Domestic P2P & ACH instant payments with idempotency protection' },
+        { id: 'requests', num: '06', title: 'Request Money', subtitle: 'Create, settle, decline, or cancel peer payment requests' },
+        { id: 'splits', num: '07', title: 'Split Expenses', subtitle: 'Equal or custom group bill splitting with participant settlement tracking' },
+        { id: 'intl', num: '08', title: 'Send Globally', subtitle: 'Corridor-validated international transfers with server-generated quotes' },
+        { id: 'converter', num: '09', title: 'Currency Converter', subtitle: 'Indicative mid-market converter across all 12 currencies with cached fallback' },
+        { id: 'recipients', num: '10', title: 'Recipient Management', subtitle: 'Add, verify, favorite, or remove domestic and international beneficiaries' },
+        { id: 'quote_review', num: '11', title: 'Transfer Review', subtitle: 'Inspect active transfer quote breakdown, markup, and expiry timer' },
+        { id: 'payment_result', num: '12', title: 'Payment Result', subtitle: 'Live state machine outcome and lifecycle event timeline' },
+        { id: 'receipt', num: '13', title: 'Transaction Receipt', subtitle: 'Auditable receipt with privacy controls and printable/downloadable export' },
+        { id: 'activity', num: '14', title: 'Activity & History', subtitle: 'Searchable, multi-filter ledger history with refund and reconciliation controls' },
+        { id: 'insights', num: '15', title: 'Spending Insights', subtitle: 'Real category analytics excluding refunded/failed transactions' },
+        { id: 'budgets', num: '16', title: 'Budget Management', subtitle: 'Monthly category spend caps and threshold alerts' },
+        { id: 'notifications', num: '17', title: 'Notifications', subtitle: 'Persistent payment, request, budget, and security alerts' },
+        { id: 'profile', num: '18', title: 'Profile & Security', subtitle: 'MFA controls, session revocation, preferences, and account deactivation' },
+        { id: 'copilot', num: '19', title: 'GP Copilot', subtitle: 'Scoped financial assistant for spend summaries, fee comparisons, and anomaly checks' },
+        { id: 'corridors', num: '20', title: 'Supported Corridors', subtitle: 'Country/currency eligibility registry, rails, fees, and limits' },
+        { id: 'support', num: '21', title: 'Help & Support', subtitle: 'Dispute filing, FAQ, compliance disclosures, and live activation requirements' },
+        { id: 'admin', num: '22', title: 'Admin Dashboard', subtitle: 'RBAC-protected operational metrics, corridor controls, and redacted audit log' },
+        { id: 'publish_hub', num: '23', title: 'Publish: GitHub, Render & Website', subtitle: 'One-click GitHub push, Render.com full-stack Blueprint (Node + Python + Java + PostgreSQL), and customizable source files', public: true }
+      ];
+
+      function buildDefaultState() {
+        return {
+          theme: 'dark',
+          hideBalances: false,
+          fxFeedHealthy: true,
+          fxLastUpdated: '2026-10-25T07:40:00.000Z',
+          currentScreen: 'dashboard',
+          currentUserId: 'usr_maya',
+          activeQuoteId: 'qte_demo_initial',
+          selectedTxId: 'tx_seed_01',
+          activityFilters: { search: '', type: 'ALL', state: 'ALL', currency: 'ALL' },
+          users: [
+            {
+              id: 'usr_maya',
+              email: 'maya.lin@sandbox.globalpay.app',
+              passwordPlain: 'GlobalPay#2026!',
+              fullName: 'Maya Lin',
+              handle: '@mayalin',
+              phone: '+1 (415) 555-0192',
+              countryCode: 'US',
+              preferredCurrency: 'USD',
+              role: 'USER',
+              status: 'ACTIVE',
+              mfaEnabled: true,
+              notifyEmail: true,
+              notifyPush: true,
+              notifyBudget: true
+            },
+            {
+              id: 'usr_alex',
+              email: 'alex.rivera@sandbox.globalpay.app',
+              passwordPlain: 'AlexSecure#2026!',
+              fullName: 'Alex Rivera',
+              handle: '@alexrivera',
+              phone: '+44 20 7946 0921',
+              countryCode: 'GB',
+              preferredCurrency: 'GBP',
+              role: 'USER',
+              status: 'ACTIVE',
+              mfaEnabled: false,
+              notifyEmail: true,
+              notifyPush: true,
+              notifyBudget: true
+            },
+            {
+              id: 'usr_admin',
+              email: 'compliance.ops@sandbox.globalpay.app',
+              passwordPlain: 'OpsAdmin#2026!',
+              fullName: 'Priya Nair (Compliance Ops)',
+              handle: '@priya_ops',
+              phone: '+1 (212) 555-0144',
+              countryCode: 'US',
+              preferredCurrency: 'USD',
+              role: 'ADMIN',
+              status: 'ACTIVE',
+              mfaEnabled: true,
+              notifyEmail: true,
+              notifyPush: false,
+              notifyBudget: false
+            }
+          ],
+          accounts: [
+            { id: 'acc_maya_usd', userId: 'usr_maya', currency: 'USD', balanceMinor: 1248050, mask: '•••• 4829', routing: 'ACH-021000021' },
+            { id: 'acc_maya_eur', userId: 'usr_maya', currency: 'EUR', balanceMinor: 342000, mask: '•••• 9012', routing: 'DE89••••4829' },
+            { id: 'acc_maya_gbp', userId: 'usr_maya', currency: 'GBP', balanceMinor: 185500, mask: '•••• 3310', routing: 'SORT-20-00-00' },
+            { id: 'acc_maya_inr', userId: 'usr_maya', currency: 'INR', balanceMinor: 8450000, mask: '•••• 7741', routing: 'HDFC0000123' },
+            { id: 'acc_maya_jpy', userId: 'usr_maya', currency: 'JPY', balanceMinor: 245000, mask: '•••• 5508', routing: 'BOJP-0019' },
+            { id: 'acc_alex_gbp', userId: 'usr_alex', currency: 'GBP', balanceMinor: 610000, mask: '•••• 6612', routing: 'SORT-40-11-22' },
+            { id: 'acc_alex_usd', userId: 'usr_alex', currency: 'USD', balanceMinor: 220000, mask: '•••• 1198', routing: 'ACH-021000021' },
+            { id: 'acc_admin_usd', userId: 'usr_admin', currency: 'USD', balanceMinor: 500000, mask: '•••• 0001', routing: 'ACH-021000021' }
+          ],
+          beneficiaries: [
+            { id: 'ben_01', userId: 'usr_maya', fullName: 'Arjun Mehta', handleOrUpi: 'arjun.mehta@oksbi-sandbox', countryCode: 'IN', currency: 'INR', bankName: 'HDFC Bank Sandbox', accountMask: '•••• 8821', routingCode: 'HDFC0000241', rail: 'UPI_SANDBOX / IMPS', isFavorite: true },
+            { id: 'ben_02', userId: 'usr_maya', fullName: 'Claire Dubois', handleOrUpi: '@clairedubois', countryCode: 'DE', currency: 'EUR', bankName: 'EuroClear Sandbox', accountMask: 'DE89 •••• 3104', routingCode: 'COBADEFFXXX', rail: 'SEPA_INSTANT', isFavorite: true },
+            { id: 'ben_03', userId: 'usr_maya', fullName: "Liam O'Connor", handleOrUpi: '@liamoconnor', countryCode: 'US', currency: 'USD', bankName: 'GlobalPay P2P', accountMask: '•••• 1049', routingCode: 'ACH-021000021', rail: 'ACH_INSTANT', isFavorite: true },
+            { id: 'ben_04', userId: 'usr_maya', fullName: 'Kenji Sato', handleOrUpi: '@kenjisato', countryCode: 'JP', currency: 'JPY', bankName: 'Tokyo Sandbox Bank', accountMask: '•••• 7702', routingCode: 'ZENGIN-0142', rail: 'ZENGIN_SANDBOX', isFavorite: false },
+            { id: 'ben_05', userId: 'usr_alex', fullName: 'Sophie Turner (Sandbox)', handleOrUpi: '@sophie_uk', countryCode: 'GB', currency: 'GBP', bankName: 'Barclays Sandbox', accountMask: '•••• 3391', routingCode: 'SORT-20-45-11', rail: 'FASTER_PAYMENTS', isFavorite: true }
+          ],
+          corridors: [
+            { id: 'cor_us_in', sourceCountry: 'US', destinationCountry: 'IN', sourceCurrency: 'USD', targetCurrency: 'INR', rail: 'UPI_SANDBOX / IMPS', minMinor: 1000, maxMinor: 2500000, fixedFeeMinor: 299, pctFeeBps: 45, fxMarkupBps: 35, taxBps: 10, delivery: 'Instant to 15 mins', enabled: true },
+            { id: 'cor_us_gb', sourceCountry: 'US', destinationCountry: 'GB', sourceCurrency: 'USD', targetCurrency: 'GBP', rail: 'FASTER_PAYMENTS', minMinor: 1000, maxMinor: 5000000, fixedFeeMinor: 199, pctFeeBps: 35, fxMarkupBps: 25, taxBps: 0, delivery: 'Under 2 minutes', enabled: true },
+            { id: 'cor_us_eu', sourceCountry: 'US', destinationCountry: 'DE', sourceCurrency: 'USD', targetCurrency: 'EUR', rail: 'SEPA_INSTANT', minMinor: 1000, maxMinor: 5000000, fixedFeeMinor: 249, pctFeeBps: 40, fxMarkupBps: 30, taxBps: 0, delivery: 'Under 5 minutes', enabled: true },
+            { id: 'cor_us_jp', sourceCountry: 'US', destinationCountry: 'JP', sourceCurrency: 'USD', targetCurrency: 'JPY', rail: 'ZENGIN_SANDBOX', minMinor: 2000, maxMinor: 3000000, fixedFeeMinor: 399, pctFeeBps: 50, fxMarkupBps: 40, taxBps: 0, delivery: '1 to 4 hours', enabled: true },
+            { id: 'cor_us_sg', sourceCountry: 'US', destinationCountry: 'SG', sourceCurrency: 'USD', targetCurrency: 'SGD', rail: 'FAST_PAYNOW', minMinor: 1000, maxMinor: 4000000, fixedFeeMinor: 250, pctFeeBps: 35, fxMarkupBps: 30, taxBps: 0, delivery: 'Instant', enabled: true },
+            { id: 'cor_gb_eu', sourceCountry: 'GB', destinationCountry: 'DE', sourceCurrency: 'GBP', targetCurrency: 'EUR', rail: 'SEPA_BRIDGE', minMinor: 1000, maxMinor: 3000000, fixedFeeMinor: 199, pctFeeBps: 35, fxMarkupBps: 30, taxBps: 0, delivery: 'Under 10 minutes', enabled: true }
+          ],
+          quotes: [
+            {
+              id: 'qte_demo_initial',
+              userId: 'usr_maya',
+              beneficiaryId: 'ben_01',
+              sourceCurrency: 'USD',
+              targetCurrency: 'INR',
+              sendAmountMinor: 40000,
+              fixedFeeMinor: 299,
+              variableFeeMinor: 180,
+              taxAmountMinor: 40,
+              totalFeeMinor: 519,
+              totalPayableMinor: 40519,
+              midMarketRate: '83.9500',
+              customerRate: '83.6562',
+              fxMarkupBps: 35,
+              recipientAmountMinor: 3346248,
+              delivery: 'Instant to 15 mins',
+              expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+              acceptedAt: null
+            }
+          ],
+          transactions: [
+            {
+              id: 'tx_seed_01',
+              referenceCode: 'GP-SBX-20261020-A109F2',
+              userId: 'usr_maya',
+              sourceAccountId: 'acc_maya_usd',
+              type: 'INTERNATIONAL_TRANSFER',
+              state: 'COMPLETED',
+              sourceCurrency: 'USD',
+              sourceAmountMinor: 50000,
+              feeAmountMinor: 524,
+              taxAmountMinor: 50,
+              totalDebitedMinor: 50574,
+              targetCurrency: 'INR',
+              targetAmountMinor: 4182800,
+              exchangeRateUsed: '83.6560',
+              spendingCategory: 'Family & International',
+              recipientName: 'Arjun Mehta',
+              recipientIdentifier: 'HDFC0000241 / •••• 8821',
+              note: 'Diwali family gift (Sandbox)',
+              providerName: 'globalpay_deterministic_sandbox',
+              providerReference: 'SBX-PRV-9910A8B7C6',
+              idempotencyKey: 'idem_seed_01',
+              createdAt: '2026-10-20T14:22:00.000Z',
+              events: [
+                { from: 'DRAFT', to: 'REQUIRES_AUTHORIZATION', actor: 'SYSTEM', reason: 'Quote validated', time: '2026-10-20T14:21:58Z' },
+                { from: 'REQUIRES_AUTHORIZATION', to: 'PROCESSING', actor: 'USER', reason: 'Authorized by session', time: '2026-10-20T14:22:04Z' },
+                { from: 'PROCESSING', to: 'COMPLETED', actor: 'PROVIDER_WEBHOOK', reason: 'IMPS Sandbox settlement confirmed', time: '2026-10-20T14:22:18Z' }
+              ]
+            },
+            {
+              id: 'tx_seed_02',
+              referenceCode: 'GP-SBX-20261022-C482E1',
+              userId: 'usr_maya',
+              sourceAccountId: 'acc_maya_usd',
+              type: 'DOMESTIC_P2P',
+              state: 'COMPLETED',
+              sourceCurrency: 'USD',
+              sourceAmountMinor: 8500,
+              feeAmountMinor: 0,
+              taxAmountMinor: 0,
+              totalDebitedMinor: 8500,
+              targetCurrency: 'USD',
+              targetAmountMinor: 8500,
+              exchangeRateUsed: '1.0000',
+              spendingCategory: 'Dining & Nightlife',
+              recipientName: "Liam O'Connor",
+              recipientIdentifier: '@liamoconnor',
+              note: 'Ramen & concert tickets split',
+              providerName: 'globalpay_deterministic_sandbox',
+              providerReference: 'SBX-PRV-4421E9D0A1',
+              idempotencyKey: 'idem_seed_02',
+              createdAt: '2026-10-22T19:45:00.000Z',
+              events: [
+                { from: 'DRAFT', to: 'PROCESSING', actor: 'USER', reason: 'Instant P2P submitted', time: '2026-10-22T19:45:00Z' },
+                { from: 'PROCESSING', to: 'COMPLETED', actor: 'PROVIDER_WEBHOOK', reason: 'Ledger settled', time: '2026-10-22T19:45:02Z' }
+              ]
+            },
+            {
+              id: 'tx_seed_03',
+              referenceCode: 'GP-SBX-20261024-E771B4',
+              userId: 'usr_maya',
+              sourceAccountId: 'acc_maya_usd',
+              type: 'QR_PAY',
+              state: 'PROCESSING',
+              sourceCurrency: 'USD',
+              sourceAmountMinor: 6400,
+              feeAmountMinor: 0,
+              taxAmountMinor: 0,
+              totalDebitedMinor: 6400,
+              targetCurrency: 'USD',
+              targetAmountMinor: 6400,
+              exchangeRateUsed: '1.0000',
+              spendingCategory: 'Shopping & Gear',
+              recipientName: 'SoHo Audio Lab Sandbox',
+              recipientIdentifier: 'globalpay://pay?merchant=soho_audio',
+              note: 'Studio monitor stand (Awaiting webhook)',
+              providerName: 'globalpay_deterministic_sandbox',
+              providerReference: 'SBX-PRV-PEND8821',
+              idempotencyKey: 'idem_seed_03',
+              createdAt: '2026-10-24T16:10:00.000Z',
+              events: [
+                { from: 'DRAFT', to: 'PROCESSING', actor: 'USER', reason: 'QR scan authorized; awaiting merchant clearing webhook', time: '2026-10-24T16:10:00Z' }
+              ]
+            },
+            {
+              id: 'tx_seed_alex_01',
+              referenceCode: 'GP-SBX-20261023-FF0099',
+              userId: 'usr_alex',
+              sourceAccountId: 'acc_alex_gbp',
+              type: 'DOMESTIC_P2P',
+              state: 'COMPLETED',
+              sourceCurrency: 'GBP',
+              sourceAmountMinor: 4200,
+              feeAmountMinor: 0,
+              taxAmountMinor: 0,
+              totalDebitedMinor: 4200,
+              targetCurrency: 'GBP',
+              targetAmountMinor: 4200,
+              exchangeRateUsed: '1.0000',
+              spendingCategory: 'Software & Cloud',
+              recipientName: 'London Cloud Host Sandbox',
+              recipientIdentifier: 'SORT-40-11-22',
+              note: 'Alex private server invoice',
+              providerName: 'globalpay_deterministic_sandbox',
+              providerReference: 'SBX-PRV-ALEX990011',
+              idempotencyKey: 'idem_seed_alex_01',
+              createdAt: '2026-10-23T09:15:00.000Z',
+              events: []
+            }
+          ],
+          paymentRequests: [
+            {
+              id: 'req_01',
+              referenceCode: 'GPR-2026-9012',
+              requesterId: 'usr_maya',
+              payerHandle: '@alexrivera',
+              currency: 'USD',
+              amountMinor: 4500,
+              note: 'Shared airport ride from JFK',
+              status: 'PENDING',
+              createdAt: '2026-10-24T11:00:00.000Z'
+            },
+            {
+              id: 'req_02',
+              referenceCode: 'GPR-2026-9044',
+              requesterId: 'usr_alex',
+              payerHandle: '@mayalin',
+              currency: 'USD',
+              amountMinor: 3200,
+              note: 'Figma team plugin license share',
+              status: 'PENDING',
+              createdAt: '2026-10-24T18:30:00.000Z'
+            }
+          ],
+          expenseGroups: [
+            {
+              id: 'grp_01',
+              creatorId: 'usr_maya',
+              name: 'Lisbon Offsite Crew',
+              currency: 'USD',
+              totalAmountMinor: 36000,
+              splitMode: 'EQUAL',
+              category: 'Travel & Lodging',
+              shareToken: 'sh_lisbon_9921',
+              participants: [
+                { id: 'part_1', name: 'Maya Lin (You)', handle: '@mayalin', shareMinor: 12000, status: 'SETTLED' },
+                { id: 'part_2', name: "Liam O'Connor", handle: '@liamoconnor', shareMinor: 12000, status: 'OWED' },
+                { id: 'part_3', name: 'Claire Dubois', handle: '@clairedubois', shareMinor: 12000, status: 'OWED' }
+              ]
+            }
+          ],
+          budgets: [
+            { id: 'bdg_01', userId: 'usr_maya', category: 'Family & International', currency: 'USD', limitMinor: 100000, thresholdPct: 80, month: '2026-10' },
+            { id: 'bdg_02', userId: 'usr_maya', category: 'Dining & Nightlife', currency: 'USD', limitMinor: 30000, thresholdPct: 80, month: '2026-10' },
+            { id: 'bdg_03', userId: 'usr_maya', category: 'Shopping & Gear', currency: 'USD', limitMinor: 25000, thresholdPct: 80, month: '2026-10' }
+          ],
+          notifications: [
+            { id: 'ntf_01', userId: 'usr_maya', type: 'TRANSFER_STATUS', title: 'Sandbox Transfer Settled (INR 41,828.00)', message: 'Ref GP-SBX-20261020-A109F2 to Arjun Mehta completed in Sandbox.', isRead: false, time: '2026-10-20T14:22:20Z' },
+            { id: 'ntf_02', userId: 'usr_maya', type: 'REQUEST_INCOMING', title: 'Incoming Request from @alexrivera ($32.00)', message: 'Figma team plugin license share — review and settle in Request Money.', isRead: false, time: '2026-10-24T18:30:00Z' }
+          ],
+          conversionHistory: [
+            { from: 'USD', to: 'INR', amountMajor: '500.00', convertedMajor: '41975.00', rate: '83.9500', time: '2026-10-25 07:30 UTC' },
+            { from: 'USD', to: 'EUR', amountMajor: '250.00', convertedMajor: '231.13', rate: '0.9245', time: '2026-10-25 07:15 UTC' }
+          ],
+          copilotHistory: [
+            {
+              role: 'assistant',
+              text: 'Hi! I am GP Copilot (Scoped Rule-Based Sandbox Mode). Ask me to summarize your completed spending, check your October budget progress, compare USD->INR vs USD->GBP transfer fees, or flag pending transactions.'
+            }
+          ],
+          supportTickets: [
+            { id: 'tkt_101', userId: 'usr_maya', subject: 'Verify IMPS Sandbox receipt reference', status: 'OPEN', createdAt: '2026-10-24' }
+          ],
+          auditEvents: [
+            { id: 'aud_01', actor: 'usr_maya (USER)', action: 'USER_LOGIN', resource: 'Session', outcome: 'SUCCESS', meta: '{"ip":"127.0.0.1","password":"[REDACTED_SECRET]"}', time: '2026-10-25T07:40:00Z' },
+            { id: 'aud_02', actor: 'usr_maya (USER)', action: 'PAYMENT_COMPLETED', resource: 'GP-SBX-20261020-A109F2', outcome: 'SUCCESS', meta: '{"debitMinor":50574,"currency":"USD"}', time: '2026-10-20T14:22:18Z' }
+          ],
+          idempotencyKeys: {}
+        };
+      }
+
+      let state = buildDefaultState();
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.users) && Array.isArray(parsed.transactions)) {
+            state = Object.assign(buildDefaultState(), parsed);
+          }
+        }
+      } catch (_e) {}
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (_e) {}
+      }
+
+      function toast(title, message, kind = 'info') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        const colors = {
+          success: 'border-emerald-500/40 bg-emerald-950/90 text-emerald-100',
+          error: 'border-rose-500/40 bg-rose-950/90 text-rose-100',
+          warn: 'border-amber-500/40 bg-amber-950/90 text-amber-100',
+          info: 'border-purple-500/40 bg-gp-card/95 text-purple-100'
+        };
+        const el = document.createElement('div');
+        el.className = `pointer-events-auto p-3.5 rounded-xl border shadow-xl transition-all duration-200 ${colors[kind] || colors.info}`;
+        el.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="text-xs font-bold">${title}</div>
+              <div class="text-[11px] opacity-90 mt-0.5">${message}</div>
+            </div>
+            <button type="button" class="text-xs opacity-70 hover:opacity-100 px-1" onclick="this.closest('div.pointer-events-auto').remove()">✕</button>
+          </div>
+        `;
+        container.appendChild(el);
+        setTimeout(() => { if (el.parentNode) el.remove(); }, 4500);
+      }
+
+      function formatMinor(minor, currency = 'USD', respectMask = false) {
+        if (respectMask && state.hideBalances) return '••••••••';
+        const meta = CURRENCIES[currency] || { symbol: currency + ' ', decimals: 2 };
+        const n = Math.trunc(Number(minor) || 0);
+        const sign = n < 0 ? '-' : '';
+        const abs = Math.abs(n);
+        if (meta.decimals === 0) {
+          return `${sign}${meta.symbol}${abs.toLocaleString('en-US')}`;
+        }
+        const whole = Math.floor(abs / Math.pow(10, meta.decimals));
+        const frac = String(abs % Math.pow(10, meta.decimals)).padStart(meta.decimals, '0');
+        return `${sign}${meta.symbol}${whole.toLocaleString('en-US')}.${frac}`;
+      }
+
+      function getRate(fromCurr, toCurr) {
+        const rFrom = USD_MID_RATES[fromCurr] || 1;
+        const rTo = USD_MID_RATES[toCurr] || 1;
+        return rTo / rFrom;
+      }
+
+      function currentUser() {
+        return state.users.find(u => u.id === state.currentUserId) || null;
+      }
+
+      function recordAudit(action, resource, outcome, metaObj = {}) {
+        const u = currentUser();
+        const safeMeta = Object.assign({}, metaObj);
+        ['password', 'passwordPlain', 'otp', 'pin', 'token'].forEach(k => {
+          if (k in safeMeta) safeMeta[k] = '[REDACTED_SECRET]';
+        });
+        state.auditEvents.unshift({
+          id: 'aud_' + Math.random().toString(36).slice(2, 8),
+          actor: u ? `${u.id} (${u.role})` : 'ANONYMOUS',
+          action,
+          resource,
+          outcome,
+          meta: JSON.stringify(safeMeta),
+          time: new Date().toISOString()
+        });
+      }
+
+      function pushNotification(userId, type, title, message) {
+        state.notifications.unshift({
+          id: 'ntf_' + Math.random().toString(36).slice(2, 8),
+          userId,
+          type,
+          title,
+          message,
+          isRead: false,
+          time: new Date().toISOString()
+        });
+      }
+
+      let activeChartInstance = null;
+
+      window.gpNavigate = function (screenId) {
+        const target = SCREENS.find(s => s.id === screenId) || SCREENS[0];
+        if (!target.public && !currentUser()) {
+          toast('Authentication Required', 'Please sign in or select a demo account to access protected screens.', 'warn');
+          state.currentScreen = 'auth';
+        } else if (screenId === 'admin' && currentUser() && currentUser().role !== 'ADMIN') {
+          recordAudit('ADMIN_CONSOLE_DENIED', 'Screen:admin', 'DENIED', { role: currentUser().role });
+          toast('Access Denied (RBAC)', 'Administrator role required. Switch to Priya Nair (Compliance Ops) in the sidebar to inspect Admin tools.', 'error');
+          state.currentScreen = 'admin';
+        } else {
+          state.currentScreen = target.id;
+        }
+        saveState();
+        renderAll();
+      };
+
+      window.gpToggleTheme = function () {
+        state.theme = state.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.classList.toggle('dark', state.theme === 'dark');
+        saveState();
+        renderAll();
+      };
+
+      window.gpToggleBalanceMask = function () {
+        state.hideBalances = !state.hideBalances;
+        saveState();
+        renderAll();
+      };
+
+      window.gpToggleMobileNav = function () {
+        const nav = document.getElementById('sidebar-nav-list');
+        if (nav) nav.classList.toggle('hidden');
+      };
+
+      window.gpResetSandboxData = function () {
+        state = buildDefaultState();
+        saveState();
+        toast('Sandbox Ledger Reset', 'Restored clean deterministic demo accounts, balances, and transactions.', 'info');
+        renderAll();
+      };
+
+      window.gpSwitchPersona = function (userId) {
+        const target = state.users.find(u => u.id === userId);
+        if (!target) return;
+        state.currentUserId = target.id;
+        recordAudit('PERSONA_SWITCH', target.id, 'SUCCESS', { email: target.email });
+        toast('Switched Active Session', `Signed in as ${target.fullName} (${target.role})`, 'success');
+        saveState();
+        renderAll();
+      };
+
+      window.gpLogout = function () {
+        recordAudit('USER_LOGOUT', 'Session', 'SUCCESS');
+        state.currentUserId = null;
+        state.currentScreen = 'auth';
+        saveState();
+        toast('Logged Out', 'Session revoked. Protected routes are now locked.', 'info');
+        renderAll();
+      };
+
+      window.gpRenderNav = function () {
+        const filterEl = document.getElementById('screen-jump-filter');
+        const query = (filterEl ? filterEl.value : '').trim().toLowerCase();
+        const listEl = document.getElementById('sidebar-nav-list');
+        if (!listEl) return;
+
+        listEl.innerHTML = SCREENS.filter(s => {
+          if (!query) return true;
+          return s.title.toLowerCase().includes(query) || s.num.includes(query) || s.id.includes(query);
+        }).map(s => {
+          const active = state.currentScreen === s.id;
+          return `
+            <button type="button" onclick="window.gpNavigate('${s.id}')"
+              class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-medium transition ${
+                active
+                  ? 'bg-gradient-to-r from-gp-electric to-gp-violet text-white shadow-md shadow-purple-700/25 font-semibold'
+                  : 'text-slate-700 dark:text-purple-200/80 hover:bg-purple-500/10'
+              }">
+              <span class="truncate"><span class="font-mono opacity-60 mr-1.5">${s.num}.</span>${s.title}</span>
+              ${active ? '<span class="w-1.5 h-1.5 rounded-full bg-white"></span>' : ''}
+            </button>
+          `;
+        }).join('');
+      };
+
+      function renderShellHeader() {
+        document.documentElement.classList.toggle('dark', state.theme === 'dark');
+        const u = currentUser();
+        const badge = document.getElementById('top-session-badge');
+        if (badge) {
+          badge.textContent = u ? `Session: ${u.handle} (${u.role})` : 'Session: Unauthenticated';
+        }
+
+        const userCard = document.getElementById('sidebar-user-card');
+        if (userCard) {
+          userCard.innerHTML = `
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-mono uppercase tracking-wider text-purple-600 dark:text-gp-lavender font-semibold">Active Sandbox Session</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 font-semibold">${u ? u.role : 'GUEST'}</span>
+            </div>
+            <div class="text-xs font-bold truncate">${u ? u.fullName : 'Not Signed In'}</div>
+            <div class="text-[11px] text-slate-500 dark:text-purple-300/70 truncate mb-2">${u ? u.email : 'Log in to access ledger'}</div>
+            <label class="block text-[10px] text-slate-500 dark:text-purple-300/70 mb-1">Quick Demo Persona Switcher:</label>
+            <select onchange="window.gpSwitchPersona(this.value)" class="w-full text-xs rounded-lg px-2 py-1.5 bg-white dark:bg-gp-bg border border-slate-300 dark:border-gp-border">
+              <option value="" ${!u ? 'selected' : ''} disabled>Select Persona...</option>
+              ${state.users.map(usr => `<option value="${usr.id}" ${u && u.id === usr.id ? 'selected' : ''}>${usr.fullName} (${usr.role})</option>`).join('')}
+            </select>
+          `;
+        }
+
+        const screenMeta = SCREENS.find(s => s.id === state.currentScreen) || SCREENS[0];
+        const numPill = document.getElementById('screen-number-pill');
+        const titleEl = document.getElementById('screen-header-title');
+        const subEl = document.getElementById('screen-header-subtitle');
+        if (numPill) numPill.textContent = `Screen ${screenMeta.num} / 22`;
+        if (titleEl) titleEl.textContent = screenMeta.title;
+        if (subEl) subEl.textContent = screenMeta.subtitle;
+
+        const maskBtn = document.getElementById('header-balance-mask-btn');
+        if (maskBtn) maskBtn.textContent = state.hideBalances ? 'Show Balances' : 'Hide Balances';
+
+        const notifBtn = document.getElementById('header-notif-btn');
+        if (notifBtn && u) {
+          const unread = state.notifications.filter(n => n.userId === u.id && !n.isRead).length;
+          notifBtn.textContent = `Alerts (${unread})`;
+        }
+
+        const logoutBtn = document.getElementById('header-logout-btn');
+        if (logoutBtn) {
+          logoutBtn.style.display = u ? 'inline-flex' : 'none';
+        }
+      }
+
+      function renderWelcomeScreen() {
+        return `
+          <div class="space-y-6">
+            <div class="glass-panel rounded-3xl p-6 sm:p-10 border border-purple-500/30 relative overflow-hidden">
+              <div class="max-w-2xl space-y-4">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-600 dark:text-gp-lavender text-xs font-semibold">
+                  GlobalPay 2.0 • Full-Stack Global Financial Architecture
+                </div>
+                <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                  Money moves. <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-indigo-400">You move.</span>
+                </h2>
+                <p class="text-sm text-slate-600 dark:text-purple-200/80 leading-relaxed">
+                  Experience domestic instant payments, QR checkout, server-quoted international remittances across supported corridors, multi-currency accounts in exact integer minor units, expense splitting, smart spend analytics, and role-based compliance controls.
+                </p>
+                <div class="flex flex-wrap gap-3 pt-2">
+                  <button type="button" onclick="window.gpNavigate('dashboard')" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-gp-electric to-gp-violet text-white font-semibold text-xs shadow-lg shadow-purple-600/30 hover:opacity-95">
+                    Launch Interactive Dashboard
+                  </button>
+                  <button type="button" onclick="window.gpNavigate('auth')" class="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-gp-border font-semibold text-xs hover:bg-purple-500/10">
+                    Sign In / Register Account
+                  </button>
+                  <button type="button" onclick="window.gpNavigate('intl')" class="px-5 py-2.5 rounded-xl border border-purple-500/40 text-purple-600 dark:text-gp-lavender font-semibold text-xs hover:bg-purple-500/10">
+                    Test International Quote Engine
+                  </button>
+                  <button type="button" onclick="window.gpNavigate('publish_hub')" class="px-5 py-2.5 rounded-xl bg-emerald-600/20 border border-emerald-500/40 text-emerald-600 dark:text-emerald-300 font-semibold text-xs hover:bg-emerald-600/30">
+                    Publish to GitHub, Render & Website
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="glass-panel rounded-2xl p-5">
+                <div class="text-xs font-mono uppercase text-purple-500 dark:text-gp-lavender font-bold mb-1">Exact Minor-Unit Ledger</div>
+                <h3 class="font-bold text-sm mb-1">Zero Floating-Point Drift</h3>
+                <p class="text-xs text-slate-500 dark:text-purple-200/70">All balances, fees, taxes, and quotes are computed in integer minor units (cents, paise, whole yen) with fixed-point FX rates.</p>
+              </div>
+              <div class="glass-panel rounded-2xl p-5">
+                <div class="text-xs font-mono uppercase text-emerald-500 font-bold mb-1">Validated State Machine</div>
+                <h3 class="font-bold text-sm mb-1">Idempotent & Auditable</h3>
+                <p class="text-xs text-slate-500 dark:text-purple-200/70">Every payment transitions through strict states (DRAFT → REQUIRES_AUTHORIZATION → PROCESSING → COMPLETED/REFUNDED) with webhook deduplication.</p>
+              </div>
+              <div class="glass-panel rounded-2xl p-5">
+                <div class="text-xs font-mono uppercase text-amber-500 font-bold mb-1">Compliance Boundaries</div>
+                <h3 class="font-bold text-sm mb-1">Explicit Sandbox Isolation</h3>
+                <p class="text-xs text-slate-500 dark:text-purple-200/70">Clearly separates simulated sandbox settlement from live banking rails, never collecting raw UPI PINs, bank passwords, or unverified tokens.</p>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderAuthScreen() {
+        const u = currentUser();
+        return `
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+              <div class="flex items-center justify-between">
+                <h2 class="text-lg font-bold">Sign In to GlobalPay</h2>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-500 dark:text-gp-lavender">PBKDF2 Session Auth</span>
+              </div>
+              <form onsubmit="window.gpHandleLogin(event)" class="space-y-3">
+                <div>
+                  <label class="block text-xs font-medium mb-1">Email Address</label>
+                  <input id="login-email" type="email" required value="maya.lin@sandbox.globalpay.app" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1">Password</label>
+                  <input id="login-password" type="password" required value="GlobalPay#2026!" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                </div>
+                <div class="flex items-center justify-between text-xs pt-1">
+                  <button type="button" onclick="window.gpIssuePasswordReset()" class="text-purple-600 dark:text-gp-lavender hover:underline">Send single-use reset token</button>
+                  <button type="submit" class="px-4 py-2 rounded-xl bg-gp-electric text-white font-semibold hover:bg-gp-violet">Sign In</button>
+                </div>
+              </form>
+
+              <div class="pt-3 border-t border-slate-200 dark:border-gp-border">
+                <div class="text-xs font-semibold mb-2">Seeded Sandbox Accounts (Local Testing Only):</div>
+                <div class="space-y-1.5 text-[11px]">
+                  <button type="button" onclick="window.gpSwitchPersona('usr_maya'); window.gpNavigate('dashboard');" class="w-full text-left p-2 rounded-lg bg-slate-100 dark:bg-gp-bg hover:bg-purple-500/15 flex justify-between">
+                    <span><strong>Maya Lin</strong> (maya.lin@sandbox.globalpay.app)</span>
+                    <span class="font-mono text-purple-500">USER • Login</span>
+                  </button>
+                  <button type="button" onclick="window.gpSwitchPersona('usr_alex'); window.gpNavigate('dashboard');" class="w-full text-left p-2 rounded-lg bg-slate-100 dark:bg-gp-bg hover:bg-purple-500/15 flex justify-between">
+                    <span><strong>Alex Rivera</strong> (alex.rivera@sandbox.globalpay.app)</span>
+                    <span class="font-mono text-purple-500">USER • Login</span>
+                  </button>
+                  <button type="button" onclick="window.gpSwitchPersona('usr_admin'); window.gpNavigate('admin');" class="w-full text-left p-2 rounded-lg bg-slate-100 dark:bg-gp-bg hover:bg-purple-500/15 flex justify-between">
+                    <span><strong>Priya Nair</strong> (compliance.ops@sandbox.globalpay.app)</span>
+                    <span class="font-mono text-amber-500">ADMIN • Login</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+              <h2 class="text-lg font-bold">Create Sandbox Account</h2>
+              <p class="text-xs text-slate-500 dark:text-purple-200/70">New registrations automatically provision a verified sandbox USD account with $2,500.00 in test funds.</p>
+              <form onsubmit="window.gpHandleRegister(event)" class="space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Full Legal Name</label>
+                    <input id="reg-name" type="text" required placeholder="Zoe Chen" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium mb-1">GlobalPay Handle</label>
+                    <input id="reg-handle" type="text" required placeholder="@zoechen" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1">Email Address</label>
+                  <input id="reg-email" type="email" required placeholder="zoe.chen@sandbox.globalpay.app" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Password (min 8 chars)</label>
+                    <input id="reg-password" type="password" required minlength="8" placeholder="••••••••••••" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Primary Currency</label>
+                    <select id="reg-currency" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border">
+                      <option value="USD">USD — US Dollar</option>
+                      <option value="GBP">GBP — British Pound</option>
+                      <option value="EUR">EUR — Euro</option>
+                      <option value="INR">INR — Indian Rupee</option>
+                    </select>
+                  </div>
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-gp-electric to-gp-violet text-white font-semibold text-xs">
+                  Register & Provision Sandbox Ledger
+                </button>
+              </form>
+              ${u ? `<div class="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-xs">Currently authenticated as <strong>${u.fullName}</strong> (${u.email}).</div>` : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpHandleLogin = function (e) {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value.trim().toLowerCase();
+        const pass = document.getElementById('login-password').value;
+        const found = state.users.find(u => u.email.toLowerCase() === email && u.passwordPlain === pass);
+        if (!found) {
+          recordAudit('USER_LOGIN_FAILED', 'Session', 'DENIED', { email });
+          toast('Authentication Failed', 'Invalid email or password. Use one of the seeded demo accounts or register a new user.', 'error');
+          return;
+        }
+        if (found.status !== 'ACTIVE') {
+          toast('Account Deactivated', 'This account has been deactivated and placed under statutory retention hold.', 'error');
+          return;
+        }
+        state.currentUserId = found.id;
+        state.currentScreen = 'dashboard';
+        recordAudit('USER_LOGIN', found.id, 'SUCCESS', { email });
+        saveState();
+        toast('Welcome back, ' + found.fullName, 'Authenticated session established.', 'success');
+        renderAll();
+      };
+
+      window.gpHandleRegister = function (e) {
+        e.preventDefault();
+        const fullName = document.getElementById('reg-name').value.trim();
+        const handleRaw = document.getElementById('reg-handle').value.trim();
+        const email = document.getElementById('reg-email').value.trim().toLowerCase();
+        const passwordPlain = document.getElementById('reg-password').value;
+        const preferredCurrency = document.getElementById('reg-currency').value;
+
+        if (state.users.some(u => u.email.toLowerCase() === email)) {
+          toast('Registration Error', 'An account with that email already exists.', 'error');
+          return;
+        }
+        const newId = 'usr_' + Math.random().toString(36).slice(2, 8);
+        const handle = handleRaw.startsWith('@') ? handleRaw : '@' + handleRaw;
+        const newUser = {
+          id: newId,
+          email,
+          passwordPlain,
+          fullName,
+          handle,
+          phone: '+1 (555) 019-2831',
+          countryCode: 'US',
+          preferredCurrency,
+          role: 'USER',
+          status: 'ACTIVE',
+          mfaEnabled: false,
+          notifyEmail: true,
+          notifyPush: true,
+          notifyBudget: true
+        };
+        state.users.push(newUser);
+        state.accounts.push({
+          id: 'acc_' + newId + '_usd',
+          userId: newId,
+          currency: 'USD',
+          balanceMinor: 250000,
+          mask: '•••• ' + Math.floor(1000 + Math.random() * 9000),
+          routing: 'ACH-021000021'
+        });
+        state.currentUserId = newId;
+        state.currentScreen = 'dashboard';
+        recordAudit('USER_REGISTER', newId, 'SUCCESS', { email, handle });
+        saveState();
+        toast('Account Created', `Provisioned $2,500.00 sandbox balance for ${fullName}.`, 'success');
+        renderAll();
+      };
+
+      window.gpIssuePasswordReset = function () {
+        const emailEl = document.getElementById('login-email');
+        const email = emailEl ? emailEl.value.trim() : 'maya.lin@sandbox.globalpay.app';
+        const token = 'rst_' + Math.random().toString(36).slice(2, 10).toUpperCase();
+        recordAudit('PASSWORD_RESET_TOKEN_ISSUED', email, 'SUCCESS', { expiresMinutes: 15 });
+        toast('Single-Use Reset Token Issued', `Sandbox reset token ${token} generated (expires in 15 mins).`, 'info');
+      };
+
+      function renderDashboardScreen() {
+        const u = currentUser();
+        const userAccounts = state.accounts.filter(a => a.userId === u.id);
+        const userBeneficiaries = state.beneficiaries.filter(b => b.userId === u.id);
+        const userTxs = state.transactions.filter(t => t.userId === u.id);
+        const userBudgets = state.budgets.filter(b => b.userId === u.id);
+
+        return `
+          <div class="space-y-6">
+            <div class="glass-panel rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <div class="text-xs font-mono text-purple-500 dark:text-gp-lavender">Authenticated Profile • ${u.handle}</div>
+                <h2 class="text-2xl font-extrabold tracking-tight mt-0.5">Hello, ${u.fullName}</h2>
+                <p class="text-xs text-slate-500 dark:text-purple-200/70">All balances and transactions reflect live authenticated ledger state.</p>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" onclick="window.gpNavigate('qr')" class="px-3.5 py-2 rounded-xl bg-gp-electric text-white text-xs font-semibold hover:bg-gp-violet">Scan & Pay</button>
+                <button type="button" onclick="window.gpNavigate('domestic')" class="px-3.5 py-2 rounded-xl bg-purple-600/20 text-purple-700 dark:text-gp-lavender border border-purple-500/30 text-xs font-semibold hover:bg-purple-600/30">Pay Contact</button>
+                <button type="button" onclick="window.gpNavigate('intl')" class="px-3.5 py-2 rounded-xl bg-indigo-600/20 text-indigo-700 dark:text-indigo-200 border border-indigo-500/30 text-xs font-semibold hover:bg-indigo-600/30">Send Globally</button>
+                <button type="button" onclick="window.gpNavigate('requests')" class="px-3.5 py-2 rounded-xl border border-slate-300 dark:border-gp-border text-xs font-semibold hover:bg-purple-500/10">Request Money</button>
+                <button type="button" onclick="window.gpTopUpSandbox()" class="px-3.5 py-2 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 text-xs font-semibold hover:bg-emerald-500/30">+ $500 Sandbox Top-Up</button>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-purple-300/80">Your Multi-Currency Accounts (${userAccounts.length})</h3>
+                <button type="button" onclick="window.gpToggleBalanceMask()" class="text-xs text-purple-600 dark:text-gp-lavender hover:underline">${state.hideBalances ? 'Show Amounts' : 'Hide Amounts'}</button>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                ${userAccounts.map(acc => `
+                  <div class="glass-panel rounded-2xl p-4 border border-purple-500/20 flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                      <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-gp-lavender">${acc.currency}</span>
+                      <span class="text-[11px] font-mono text-slate-400">${acc.mask}</span>
+                    </div>
+                    <div class="my-3">
+                      <div class="text-xl font-extrabold font-mono">${formatMinor(acc.balanceMinor, acc.currency, true)}</div>
+                      <div class="text-[11px] text-slate-500 dark:text-purple-300/60">${CURRENCIES[acc.currency]?.name || acc.currency}</div>
+                    </div>
+                    <div class="text-[10px] font-mono text-emerald-500">SANDBOX ACTIVE • ${acc.routing}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <div class="glass-panel rounded-2xl p-5 space-y-3">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-sm font-bold">Saved Contacts & Beneficiaries</h3>
+                  <button type="button" onclick="window.gpNavigate('recipients')" class="text-xs text-purple-500 hover:underline">Manage All</button>
+                </div>
+                <div class="space-y-2">
+                  ${userBeneficiaries.slice(0, 4).map(b => `
+                    <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-100/70 dark:bg-gp-bg/60">
+                      <div>
+                        <div class="text-xs font-bold">${b.fullName} <span class="font-mono text-[10px] text-purple-400">(${b.currency})</span></div>
+                        <div class="text-[11px] text-slate-500 dark:text-purple-300/60">${b.bankName} • ${b.accountMask}</div>
+                      </div>
+                      <button type="button" onclick="window.gpNavigate('${b.currency === 'USD' ? 'domestic' : 'intl'}')" class="px-2.5 py-1 rounded-lg bg-purple-600/20 text-purple-600 dark:text-gp-lavender text-[11px] font-semibold">Send</button>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div class="glass-panel rounded-2xl p-5 space-y-3">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-sm font-bold">Indicative USD Exchange Rates</h3>
+                  <button type="button" onclick="window.gpNavigate('converter')" class="text-xs text-purple-500 hover:underline">Converter</button>
+                </div>
+                <div class="space-y-2 text-xs font-mono">
+                  <div class="flex justify-between p-2 rounded-lg bg-slate-100/70 dark:bg-gp-bg/60"><span>1 USD → INR</span><span class="font-bold text-emerald-500">₹83.9500</span></div>
+                  <div class="flex justify-between p-2 rounded-lg bg-slate-100/70 dark:bg-gp-bg/60"><span>1 USD → EUR</span><span class="font-bold text-emerald-500">€0.9245</span></div>
+                  <div class="flex justify-between p-2 rounded-lg bg-slate-100/70 dark:bg-gp-bg/60"><span>1 USD → GBP</span><span class="font-bold text-emerald-500">£0.7890</span></div>
+                  <div class="flex justify-between p-2 rounded-lg bg-slate-100/70 dark:bg-gp-bg/60"><span>1 USD → JPY</span><span class="font-bold text-emerald-500">¥153.2000</span></div>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-purple-300/60">Indicative mid-market feed. Transfer quotes include explicit corridor markup.</p>
+              </div>
+
+              <div class="glass-panel rounded-2xl p-5 space-y-3">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-sm font-bold">Budgets & Reminders</h3>
+                  <button type="button" onclick="window.gpNavigate('budgets')" class="text-xs text-purple-500 hover:underline">Budgets</button>
+                </div>
+                <div class="space-y-2">
+                  ${userBudgets.map(b => {
+                    const spent = userTxs.filter(t => t.state === 'COMPLETED' && t.spendingCategory === b.category).reduce((acc, t) => acc + t.totalDebitedMinor, 0);
+                    const pct = Math.min(100, Math.round((spent / b.limitMinor) * 100));
+                    return `
+                      <div class="p-2.5 rounded-xl bg-slate-100/70 dark:bg-gp-bg/60">
+                        <div class="flex justify-between text-xs font-semibold mb-1">
+                          <span>${b.category}</span>
+                          <span class="font-mono">${formatMinor(spent, b.currency)} / ${formatMinor(b.limitMinor, b.currency)} (${pct}%)</span>
+                        </div>
+                        <div class="w-full h-1.5 rounded-full bg-slate-300 dark:bg-gp-border overflow-hidden">
+                          <div class="h-full ${pct >= 80 ? 'bg-amber-500' : 'bg-gp-violet'}" style="width:${pct}%"></div>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                  <div class="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-[11px]">
+                    <strong>Upcoming Reminder:</strong> Cloud Studio Subscription ($29.00) renews Nov 01, 2026.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-5">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-bold">Recent Authenticated Ledger Transactions</h3>
+                <button type="button" onclick="window.gpNavigate('activity')" class="text-xs text-purple-500 hover:underline">Full Activity & Filters →</button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                  <thead class="text-[11px] uppercase text-slate-400 border-b border-slate-200 dark:border-gp-border">
+                    <tr>
+                      <th class="py-2 pr-3">Reference</th>
+                      <th class="py-2 pr-3">Recipient</th>
+                      <th class="py-2 pr-3">Type</th>
+                      <th class="py-2 pr-3">State</th>
+                      <th class="py-2 pr-3 text-right">Total Debited</th>
+                      <th class="py-2 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200/60 dark:divide-gp-border/50">
+                    ${userTxs.slice(0, 5).map(tx => `
+                      <tr>
+                        <td class="py-2.5 pr-3 font-mono text-[11px]">${tx.referenceCode}</td>
+                        <td class="py-2.5 pr-3 font-semibold">${tx.recipientName}</td>
+                        <td class="py-2.5 pr-3"><span class="px-2 py-0.5 rounded bg-purple-500/15 text-[10px] font-mono">${tx.type}</span></td>
+                        <td class="py-2.5 pr-3"><span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${tx.state === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400' : tx.state === 'PROCESSING' ? 'bg-amber-500/20 text-amber-300' : 'bg-rose-500/20 text-rose-300'}">${tx.state}</span></td>
+                        <td class="py-2.5 pr-3 text-right font-mono font-bold">${formatMinor(tx.totalDebitedMinor, tx.sourceCurrency, true)}</td>
+                        <td class="py-2.5 text-right">
+                          <button type="button" onclick="window.gpOpenReceipt('${tx.id}')" class="text-purple-500 hover:underline font-semibold">Receipt</button>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpTopUpSandbox = function () {
+        const u = currentUser();
+        const usdAcc = state.accounts.find(a => a.userId === u.id && a.currency === 'USD');
+        if (!usdAcc) return;
+        usdAcc.balanceMinor += 50000;
+        const txId = 'tx_' + Math.random().toString(36).slice(2, 8);
+        state.transactions.unshift({
+          id: txId,
+          referenceCode: 'GP-SBX-TOPUP-' + Math.random().toString(36).slice(2, 6).toUpperCase(),
+          userId: u.id,
+          sourceAccountId: usdAcc.id,
+          type: 'SANDBOX_TOPUP',
+          state: 'COMPLETED',
+          sourceCurrency: 'USD',
+          sourceAmountMinor: 50000,
+          feeAmountMinor: 0,
+          taxAmountMinor: 0,
+          totalDebitedMinor: 50000,
+          targetCurrency: 'USD',
+          targetAmountMinor: 50000,
+          exchangeRateUsed: '1.0000',
+          spendingCategory: 'Top-Up',
+          recipientName: u.fullName + ' (Self Sandbox Funding)',
+          recipientIdentifier: usdAcc.mask,
+          note: 'Fictional sandbox liquidity top-up',
+          providerName: 'globalpay_deterministic_sandbox',
+          providerReference: 'SBX-TOP-' + Date.now(),
+          idempotencyKey: 'idem_' + txId,
+          createdAt: new Date().toISOString(),
+          events: [{ from: 'DRAFT', to: 'COMPLETED', actor: 'SYSTEM', reason: 'Instant sandbox funding', time: new Date().toISOString() }]
+        });
+        saveState();
+        toast('Sandbox Balance Topped Up', 'Added fictional $500.00 to your USD Sandbox Account.', 'success');
+        renderAll();
+      };
+
+      function renderQrScreen() {
+        return `
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+              <div class="flex items-center justify-between">
+                <h2 class="text-lg font-bold">Scan & Pay (Sandbox QR Parser)</h2>
+                <button type="button" onclick="window.gpSimulateCameraPermission()" class="px-3 py-1 rounded-lg bg-purple-600/20 text-purple-400 text-xs font-semibold">Request Camera Access</button>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-purple-200/70">
+                A scanned QR payload is treated as untrusted input and validated on the server before previewing the recipient. Camera denial never blocks manual entry below.
+              </p>
+
+              <div class="space-y-2">
+                <div class="text-xs font-semibold">Load Fictional Sandbox QR Code Preset:</div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button type="button" onclick="window.gpLoadQrPreset('globalpay://qr?pa=bluebottle@sandbox&pn=Blue%20Bottle%20Coffee%20Sandbox&am=14.50&cu=USD')" class="p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-left text-xs">
+                    <div class="font-bold text-emerald-400">Valid Cafe QR</div>
+                    <div class="text-[10px] opacity-80">$14.50 • Blue Bottle</div>
+                  </button>
+                  <button type="button" onclick="window.gpLoadQrPreset('globalpay://qr?pa=arjun.mehta@oksbi-sandbox&pn=Arjun%20Mehta&am=25.00&cu=USD')" class="p-2.5 rounded-xl border border-purple-500/30 bg-purple-500/10 text-left text-xs">
+                    <div class="font-bold text-purple-300">Valid P2P QR</div>
+                    <div class="text-[10px] opacity-80">$25.00 • Arjun Mehta</div>
+                  </button>
+                  <button type="button" onclick="window.gpLoadQrPreset('http://malicious-unknown-qr.example/payload')" class="p-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-left text-xs">
+                    <div class="font-bold text-rose-400">Malformed / Invalid QR</div>
+                    <div class="text-[10px] opacity-80">Test rejection guard</div>
+                  </button>
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <label class="block text-xs font-medium">QR Payload or Manual Payment Identifier</label>
+                <input id="qr-payload-input" type="text" value="globalpay://qr?pa=bluebottle@sandbox&pn=Blue%20Bottle%20Coffee%20Sandbox&am=14.50&cu=USD" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                <button type="button" onclick="window.gpValidateQrInput()" class="px-4 py-2 rounded-xl bg-gp-electric text-white text-xs font-semibold">Validate QR & Preview Recipient</button>
+              </div>
+            </div>
+
+            <div id="qr-preview-box" class="glass-panel rounded-2xl p-6 space-y-4">
+              <h3 class="text-base font-bold">Verified QR Recipient Preview</h3>
+              <form onsubmit="window.gpSubmitQrPayment(event)" class="space-y-3">
+                <div>
+                  <label class="block text-xs font-medium mb-1">Verified Merchant / Recipient Name</label>
+                  <input id="qr-rec-name" type="text" required value="Blue Bottle Coffee Sandbox" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1">Payment Handle / Address</label>
+                  <input id="qr-rec-handle" type="text" required value="bluebottle@sandbox" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Amount (USD)</label>
+                    <input id="qr-amount" type="number" step="0.01" min="0.50" max="10000" required value="14.50" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Spending Category</label>
+                    <select id="qr-category" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border">
+                      <option value="Dining & Nightlife">Dining & Nightlife</option>
+                      <option value="Shopping & Gear">Shopping & Gear</option>
+                      <option value="Transfers">Transfers</option>
+                    </select>
+                  </div>
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-gp-electric to-gp-violet text-white font-semibold text-xs">
+                  Authorize & Submit Sandbox QR Payment
+                </button>
+              </form>
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpSimulateCameraPermission = function () {
+        toast('Camera Sandbox Ready', 'Camera stream simulated. If denied on device, manual QR string entry remains unlocked.', 'info');
+      };
+
+      window.gpLoadQrPreset = function (str) {
+        const el = document.getElementById('qr-payload-input');
+        if (el) el.value = str;
+        window.gpValidateQrInput();
+      };
+
+      window.gpValidateQrInput = function () {
+        const raw = (document.getElementById('qr-payload-input')?.value || '').trim();
+        if (!raw.startsWith('globalpay://qr?')) {
+          toast('Invalid or Unsupported QR Code', 'Rejected untrusted QR scheme. Only globalpay://qr?... sandbox payloads are accepted.', 'error');
+          return;
+        }
+        const qs = new URLSearchParams(raw.replace('globalpay://qr?', ''));
+        const pn = qs.get('pn') || 'Verified Sandbox Merchant';
+        const pa = qs.get('pa') || 'merchant@sandbox';
+        const am = qs.get('am') || '10.00';
+        const nameEl = document.getElementById('qr-rec-name');
+        const handleEl = document.getElementById('qr-rec-handle');
+        const amtEl = document.getElementById('qr-amount');
+        if (nameEl) nameEl.value = pn;
+        if (handleEl) handleEl.value = pa;
+        if (amtEl) amtEl.value = am;
+        toast('QR Payload Verified', `Parsed recipient ${pn} (${pa}) for $${am}.`, 'success');
+      };
+
+      window.gpSubmitQrPayment = function (e) {
+        e.preventDefault();
+        const name = document.getElementById('qr-rec-name').value.trim();
+        const handle = document.getElementById('qr-rec-handle').value.trim();
+        const amountMajor = parseFloat(document.getElementById('qr-amount').value);
+        const category = document.getElementById('qr-category').value;
+        const amountMinor = Math.round(amountMajor * 100);
+        executeSandboxPayment({
+          type: 'QR_PAY',
+          sourceCurrency: 'USD',
+          amountMinor,
+          recipientName: name,
+          recipientIdentifier: handle,
+          spendingCategory: category,
+          note: 'QR Scan & Pay checkout',
+          idempotencyKey: 'idem_qr_' + Date.now()
+        });
+      };
+
+      function renderDomesticScreen() {
+        const u = currentUser();
+        const bens = state.beneficiaries.filter(b => b.userId === u.id);
+        return `
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+              <h2 class="text-lg font-bold">Pay a Domestic Contact or Beneficiary</h2>
+              <p class="text-xs text-slate-500 dark:text-purple-200/70">Enforces single-transaction sandbox limit ($10,000.00), idempotency keys, and deterministic state outcomes.</p>
+
+              <form onsubmit="window.gpSubmitDomesticPayment(event)" class="space-y-3">
+                <div>
+                  <label class="block text-xs font-medium mb-1">Choose Saved Beneficiary</label>
+                  <select id="dom-beneficiary" onchange="window.gpSyncDomesticRecipient()" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border">
+                    ${bens.map(b => `<option value="${b.id}" data-name="${b.fullName}" data-handle="${b.handleOrUpi || b.accountMask}">${b.fullName} (${b.handleOrUpi || b.accountMask})</option>`).join('')}
+                  </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Recipient Name</label>
+                    <input id="dom-rec-name" type="text" required value="${bens[0]?.fullName || "Liam O'Connor"}" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Handle / Account</label>
+                    <input id="dom-rec-id" type="text" required value="${bens[0]?.handleOrUpi || '@liamoconnor'}" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Amount (USD)</label>
+                    <input id="dom-amount" type="number" step="0.01" min="1.00" max="10000.00" required value="65.00" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Category</label>
+                    <select id="dom-category" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border">
+                      <option value="Dining & Nightlife">Dining & Nightlife</option>
+                      <option value="Family & International">Family & International</option>
+                      <option value="Shopping & Gear">Shopping & Gear</option>
+                      <option value="Software & Cloud">Software & Cloud</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Idempotency Key</label>
+                    <input id="dom-idem" type="text" required value="idem_dom_${Math.floor(100000 + Math.random() * 900000)}" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Sandbox Outcome Simulation</label>
+                    <select id="dom-sim-mode" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border">
+                      <option value="COMPLETED">Instant Settlement (COMPLETED)</option>
+                      <option value="PROCESSING">Hold in Clearing (PROCESSING)</option>
+                      <option value="FAILED">Simulate Bank Reject (FAILED)</option>
+                      <option value="REQUIRES_INVESTIGATION">Gateway Timeout (INVESTIGATE)</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1">Payment Note</label>
+                  <input id="dom-note" type="text" placeholder="Dinner split or invoice reference" value="Shared studio dinner" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-gp-electric to-gp-violet text-white font-semibold text-xs">
+                  Review & Submit Domestic Sandbox Payment
+                </button>
+              </form>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+              <h3 class="text-base font-bold">Domestic Payment Safeguards</h3>
+              <ul class="space-y-2 text-xs text-slate-600 dark:text-purple-200/80">
+                <li class="p-3 rounded-xl bg-slate-100 dark:bg-gp-bg"><strong>1. Idempotency Deduplication:</strong> Submitting the exact same Idempotency Key twice returns the cached transaction without debiting your account twice.</li>
+                <li class="p-3 rounded-xl bg-slate-100 dark:bg-gp-bg"><strong>2. Atomic Rollback on Bank Reject:</strong> Choosing <em>Simulate Bank Reject (FAILED)</em> transitions the transaction to FAILED and leaves your balance untouched.</li>
+                <li class="p-3 rounded-xl bg-slate-100 dark:bg-gp-bg"><strong>3. Velocity & Ceiling Checks:</strong> Any domestic payment over $10,000.00 or above your available USD balance is rejected server-side.</li>
+              </ul>
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpSyncDomesticRecipient = function () {
+        const sel = document.getElementById('dom-beneficiary');
+        if (!sel) return;
+        const opt = sel.options[sel.selectedIndex];
+        if (!opt) return;
+        document.getElementById('dom-rec-name').value = opt.getAttribute('data-name') || '';
+        document.getElementById('dom-rec-id').value = opt.getAttribute('data-handle') || '';
+      };
+
+      window.gpSubmitDomesticPayment = function (e) {
+        e.preventDefault();
+        const amountMajor = parseFloat(document.getElementById('dom-amount').value);
+        const amountMinor = Math.round(amountMajor * 100);
+        const recipientName = document.getElementById('dom-rec-name').value.trim();
+        const recipientIdentifier = document.getElementById('dom-rec-id').value.trim();
+        const spendingCategory = document.getElementById('dom-category').value;
+        const idempotencyKey = document.getElementById('dom-idem').value.trim();
+        const simMode = document.getElementById('dom-sim-mode').value;
+        const note = document.getElementById('dom-note').value.trim();
+
+        executeSandboxPayment({
+          type: 'DOMESTIC_P2P',
+          sourceCurrency: 'USD',
+          amountMinor,
+          recipientName,
+          recipientIdentifier,
+          spendingCategory,
+          idempotencyKey,
+          simMode,
+          note
+        });
+      };
+
+      function executeSandboxPayment(params) {
+        const u = currentUser();
+        const idemComposite = `${u.id}:${params.idempotencyKey}`;
+        if (state.idempotencyKeys[idemComposite]) {
+          const existingTxId = state.idempotencyKeys[idemComposite];
+          state.selectedTxId = existingTxId;
+          toast('Idempotent Replay Prevented', `Duplicate key ${params.idempotencyKey} detected; returning existing transaction without double-debiting.`, 'warn');
+          state.currentScreen = 'payment_result';
+          saveState();
+          renderAll();
+          return;
+        }
+
+        const acc = state.accounts.find(a => a.userId === u.id && a.currency === params.sourceCurrency);
+        if (!acc) {
+          toast('Account Not Found', `No ${params.sourceCurrency} account available.`, 'error');
+          return;
+        }
+
+        const totalDebit = params.totalDebitedMinor || params.amountMinor;
+        if (params.type === 'DOMESTIC_P2P' && totalDebit > 1000000) {
+          toast('Limit Exceeded', 'Domestic single transaction limit is $10,000.00.', 'error');
+          return;
+        }
+        if (acc.balanceMinor < totalDebit) {
+          toast('Insufficient Sandbox Funds', `Required ${formatMinor(totalDebit, params.sourceCurrency)}, available ${formatMinor(acc.balanceMinor, params.sourceCurrency)}.`, 'error');
+          return;
+        }
+
+        const finalState = params.simMode || 'COMPLETED';
+        if (finalState !== 'FAILED') {
+          acc.balanceMinor -= totalDebit;
+        }
+
+        const txId = 'tx_' + Math.random().toString(36).slice(2, 8);
+        const refCode = 'GP-SBX-20261025-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+        const now = new Date().toISOString();
+        const events = [
+          { from: 'DRAFT', to: 'REQUIRES_AUTHORIZATION', actor: 'SYSTEM', reason: 'Validated parameters & limits', time: now },
+          { from: 'REQUIRES_AUTHORIZATION', to: 'PROCESSING', actor: 'USER', reason: 'Session authorization confirmed', time: now }
+        ];
+        if (finalState !== 'PROCESSING') {
+          events.push({
+            from: 'PROCESSING',
+            to: finalState,
+            actor: 'PROVIDER_WEBHOOK',
+            reason: finalState === 'COMPLETED' ? 'Sandbox clearing settlement confirmed' : 'Simulated provider outcome: ' + finalState,
+            time: now
+          });
+        }
+
+        const newTx = {
+          id: txId,
+          referenceCode: refCode,
+          userId: u.id,
+          sourceAccountId: acc.id,
+          type: params.type,
+          state: finalState,
+          sourceCurrency: params.sourceCurrency,
+          sourceAmountMinor: params.amountMinor,
+          feeAmountMinor: params.feeAmountMinor || 0,
+          taxAmountMinor: params.taxAmountMinor || 0,
+          totalDebitedMinor: totalDebit,
+          targetCurrency: params.targetCurrency || params.sourceCurrency,
+          targetAmountMinor: params.targetAmountMinor || params.amountMinor,
+          exchangeRateUsed: params.exchangeRateUsed || '1.0000',
+          spendingCategory: params.spendingCategory || 'Transfers',
+          recipientName: params.recipientName,
+          recipientIdentifier: params.recipientIdentifier,
+          note: params.note || '',
+          providerName: 'globalpay_deterministic_sandbox',
+          providerReference: 'SBX-PRV-' + Math.random().toString(36).slice(2, 10).toUpperCase(),
+          idempotencyKey: params.idempotencyKey,
+          createdAt: now,
+          events
+        };
+
+        state.transactions.unshift(newTx);
+        state.idempotencyKeys[idemComposite] = txId;
+        state.selectedTxId = txId;
+        pushNotification(u.id, 'PAYMENT_OUTCOME', `Sandbox ${finalState}: ${formatMinor(newTx.targetAmountMinor, newTx.targetCurrency)}`, `Ref ${refCode} to ${newTx.recipientName}`);
+        recordAudit('PAYMENT_' + finalState, refCode, finalState === 'FAILED' ? 'FAILURE' : 'SUCCESS', { totalDebit, currency: params.sourceCurrency });
+
+        state.currentScreen = 'payment_result';
+        saveState();
+        toast(`Transaction ${finalState}`, `Reference ${refCode} recorded.`, finalState === 'FAILED' ? 'error' : 'success');
+        renderAll();
+      }
+
+      function renderRequestsScreen() {
+        return `
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+              <h2 class="text-lg font-bold">Create Payment Request</h2>
+              <p class="text-xs text-slate-500 dark:text-purple-200/70">Requests are only marked ACCEPTED_SETTLED when an actual sandbox ledger debit settles the request.</p>
+              <form onsubmit="window.gpCreatePaymentRequest(event)" class="space-y-3">
+                <div>
+                  <label class="block text-xs font-medium mb-1">Payer Handle or Email</label>
+                  <input id="req-payer" type="text" required value="@alexrivera" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Amount (USD)</label>
+                    <input id="req-amount" type="number" step="0.01" min="1" required value="38.50" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Note / Purpose</label>
+                    <input id="req-note" type="text" required value="Shared coworking day pass" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                  </div>
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-gp-electric text-white text-xs font-semibold">Send Payment Request</button>
+              </form>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-6 space-y-3">
+              <h3 class="text-base font-bold">Active & Historical Requests</h3>
+              <div class="space-y-2.5">
+                ${state.paymentRequests.map(r => `
+                  <div class="p-3.5 rounded-xl bg-slate-100 dark:bg-gp-bg border border-slate-200 dark:border-gp-border flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div class="text-xs font-bold">${r.referenceCode} • ${r.payerHandle} <span class="font-mono text-purple-400">${formatMinor(r.amountMinor, r.currency)}</span></div>
+                      <div class="text-[11px] text-slate-500 dark:text-purple-300/70">${r.note}</div>
+                      <span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold ${r.status === 'ACCEPTED_SETTLED' ? 'bg-emerald-500/20 text-emerald-400' : r.status === 'PENDING' ? 'bg-amber-500/20 text-amber-300' : 'bg-rose-500/20 text-rose-300'}">${r.status}</span>
+                    </div>
+                    ${r.status === 'PENDING' ? `
+                      <div class="flex gap-1.5">
+                        <button type="button" onclick="window.gpSettleRequest('${r.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-semibold">Accept & Pay</button>
+                        <button type="button" onclick="window.gpUpdateRequestStatus('${r.id}', 'DECLINED')" class="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-400 text-xs font-semibold">Decline</button>
+                      </div>
+                    ` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpCreatePaymentRequest = function (e) {
+        e.preventDefault();
+        const u = currentUser();
+        const payerHandle = document.getElementById('req-payer').value.trim();
+        const amountMinor = Math.round(parseFloat(document.getElementById('req-amount').value) * 100);
+        const note = document.getElementById('req-note').value.trim();
+        state.paymentRequests.unshift({
+          id: 'req_' + Math.random().toString(36).slice(2, 8),
+          referenceCode: 'GPR-2026-' + Math.floor(1000 + Math.random() * 9000),
+          requesterId: u.id,
+          payerHandle,
+          currency: 'USD',
+          amountMinor,
+          note,
+          status: 'PENDING',
+          createdAt: new Date().toISOString()
+        });
+        saveState();
+        toast('Payment Request Sent', `Requested ${formatMinor(amountMinor, 'USD')} from ${payerHandle}.`, 'success');
+        renderAll();
+      };
+
+      window.gpSettleRequest = function (reqId) {
+        const r = state.paymentRequests.find(x => x.id === reqId);
+        if (!r || r.status !== 'PENDING') return;
+        r.status = 'ACCEPTED_SETTLED';
+        executeSandboxPayment({
+          type: 'REQUEST_SETTLEMENT',
+          sourceCurrency: r.currency,
+          amountMinor: r.amountMinor,
+          recipientName: r.payerHandle,
+          recipientIdentifier: r.referenceCode,
+          spendingCategory: 'Shared Expenses',
+          idempotencyKey: 'idem_req_' + r.id,
+          note: 'Settled payment request: ' + r.note
+        });
+      };
+
+      window.gpUpdateRequestStatus = function (reqId, status) {
+        const r = state.paymentRequests.find(x => x.id === reqId);
+        if (!r) return;
+        r.status = status;
+        saveState();
+        toast('Request Updated', `Marked ${r.referenceCode} as ${status}.`, 'info');
+        renderAll();
+      };
+
+      function renderSplitsScreen() {
+        return `
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+              <h2 class="text-lg font-bold">Create Shared Expense Group</h2>
+              <p class="text-xs text-slate-500 dark:text-purple-200/70">Supports equal or custom participant splits with privacy-scoped shared receipts.</p>
+              <form onsubmit="window.gpCreateExpenseGroup(event)" class="space-y-3">
+                <div>
+                  <label class="block text-xs font-medium mb-1">Group / Event Name</label>
+                  <input id="grp-name" type="text" required value="Tokyo Hackathon Team Dinner" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Total Bill Amount (USD)</label>
+                    <input id="grp-total" type="number" step="0.01" min="3" required value="180.00" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Split Mode</label>
+                    <select id="grp-mode" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border">
+                      <option value="EQUAL">Equal 3-Way Split</option>
+                      <option value="CUSTOM">Custom Weighted (50% / 25% / 25%)</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1">Participants (Comma-separated handles)</label>
+                  <input id="grp-members" type="text" required value="@mayalin, @liamoconnor, @clairedubois" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-gp-electric text-white text-xs font-semibold">Create Expense Split</button>
+              </form>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+              <h3 class="text-base font-bold">Active Expense Groups</h3>
+              <div class="space-y-3">
+                ${state.expenseGroups.map(g => `
+                  <div class="p-4 rounded-xl bg-slate-100 dark:bg-gp-bg border border-slate-200 dark:border-gp-border space-y-2">
+                    <div class="flex justify-between items-center">
+                      <div>
+                        <span class="font-bold text-sm">${g.name}</span>
+                        <span class="ml-2 text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-400">${g.splitMode}</span>
+                      </div>
+                      <span class="font-mono font-bold text-sm">${formatMinor(g.totalAmountMinor, g.currency)}</span>
+                    </div>
+                    <div class="space-y-1.5 pt-1">
+                      ${g.participants.map(p => `
+                        <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-white/60 dark:bg-gp-surface/70">
+                          <span>${p.name} (<code class="font-mono">${p.handle}</code>)</span>
+                          <div class="flex items-center gap-2">
+                            <span class="font-mono font-semibold">${formatMinor(p.shareMinor, g.currency)}</span>
+                            ${p.status === 'SETTLED'
+                              ? '<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-mono">SETTLED</span>'
+                              : `<button type="button" onclick="window.gpSettleGroupShare('${g.id}','${p.id}')" class="px-2 py-0.5 rounded bg-purple-600 text-white text-[10px] font-semibold">Mark Paid via Ledger</button>`
+                            }
+                          </div>
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpCreateExpenseGroup = function (e) {
+        e.preventDefault();
+        const u = currentUser();
+        const name = document.getElementById('grp-name').value.trim();
+        const totalMinor = Math.round(parseFloat(document.getElementById('grp-total').value) * 100);
+        const splitMode = document.getElementById('grp-mode').value;
+        const rawMembers = document.getElementById('grp-members').value.split(',').map(s => s.trim()).filter(Boolean);
+        const count = Math.max(1, rawMembers.length);
+
+        const participants = rawMembers.map((h, idx) => {
+          let share = Math.floor(totalMinor / count);
+          if (splitMode === 'CUSTOM') {
+            share = idx === 0 ? Math.floor(totalMinor * 0.5) : Math.floor((totalMinor * 0.5) / Math.max(1, count - 1));
+          }
+          return {
+            id: 'part_' + idx + '_' + Date.now(),
+            name: idx === 0 ? `${u.fullName} (Host)` : h,
+            handle: h,
+            shareMinor: share,
+            status: idx === 0 ? 'SETTLED' : 'OWED'
+          };
+        });
+
+        state.expenseGroups.unshift({
+          id: 'grp_' + Math.random().toString(36).slice(2, 8),
+          creatorId: u.id,
+          name,
+          currency: 'USD',
+          totalAmountMinor: totalMinor,
+          splitMode,
+          category: 'Dining & Nightlife',
+          shareToken: 'sh_' + Math.random().toString(36).slice(2, 8),
+          participants
+        });
+        saveState();
+        toast('Expense Group Created', `Split ${formatMinor(totalMinor, 'USD')} across ${participants.length} participants.`, 'success');
+        renderAll();
+      };
+
+      window.gpSettleGroupShare = function (grpId, partId) {
+        const g = state.expenseGroups.find(x => x.id === grpId);
+        if (!g) return;
+        const p = g.participants.find(x => x.id === partId);
+        if (!p || p.status === 'SETTLED') return;
+        p.status = 'SETTLED';
+        executeSandboxPayment({
+          type: 'EXPENSE_SPLIT_SETTLEMENT',
+          sourceCurrency: g.currency,
+          amountMinor: p.shareMinor,
+          recipientName: g.name + ' Pool',
+          recipientIdentifier: p.handle,
+          spendingCategory: 'Dining & Nightlife',
+          idempotencyKey: 'idem_split_' + grpId + '_' + partId,
+          note: `Settled group share for ${g.name}`
+        });
+      };
+
+      function renderIntlScreen() {
+        const u = currentUser();
+        const bens = state.beneficiaries.filter(b => b.userId === u.id);
+        return `
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+              <div class="flex items-center justify-between">
+                <h2 class="text-lg font-bold">Request Server Transfer Quote</h2>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-400">Corridor Registry Enforced</span>
+              </div>
+              <form onsubmit="window.gpGenerateTransferQuote(event)" class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Send Currency</label>
+                    <select id="intl-src-curr" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border">
+                      <option value="USD">USD — US Dollar (US)</option>
+                      <option value="GBP">GBP — British Pound (GB)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Receive Currency (Corridor)</label>
+                    <select id="intl-tgt-curr" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border">
+                      <option value="INR">INR — India (UPI/IMPS)</option>
+                      <option value="GBP">GBP — United Kingdom (Faster Payments)</option>
+                      <option value="EUR">EUR — Eurozone (SEPA Instant)</option>
+                      <option value="JPY">JPY — Japan (Zengin)</option>
+                      <option value="SGD">SGD — Singapore (FAST)</option>
+                      <option value="ZAR">ZAR — South Africa (Display Only / Restricted)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Send Amount</label>
+                    <input id="intl-send-amount" type="number" step="0.01" min="10" max="25000" required value="500.00" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Beneficiary</label>
+                    <select id="intl-beneficiary" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border">
+                      ${bens.map(b => `<option value="${b.id}">${b.fullName} (${b.currency} • ${b.routingCode})</option>`).join('')}
+                    </select>
+                  </div>
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-gp-electric to-gp-violet text-white font-semibold text-xs">
+                  Calculate Server-Authoritative Transfer Quote
+                </button>
+              </form>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-6 space-y-3">
+              <h3 class="text-base font-bold">Supported Corridor Rules</h3>
+              <p class="text-xs text-slate-500 dark:text-purple-200/70">Currency display support (12 currencies) does not imply every pair is transferable. Only enabled corridors in the registry can generate executable transfer quotes.</p>
+              <div class="space-y-2 text-xs">
+                ${state.corridors.map(c => `
+                  <div class="p-2.5 rounded-xl bg-slate-100 dark:bg-gp-bg flex items-center justify-between">
+                    <div>
+                      <span class="font-mono font-bold">${c.sourceCurrency} → ${c.targetCurrency}</span>
+                      <span class="text-[11px] text-slate-500 ml-2">${c.rail} (${c.delivery})</span>
+                    </div>
+                    <span class="font-mono text-[11px] text-purple-400">Fee: ${formatMinor(c.fixedFeeMinor, c.sourceCurrency)} + ${(c.pctFeeBps/100).toFixed(2)}%</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpGenerateTransferQuote = function (e) {
+        e.preventDefault();
+        const u = currentUser();
+        const src = document.getElementById('intl-src-curr').value;
+        const tgt = document.getElementById('intl-tgt-curr').value;
+        const amountMajor = parseFloat(document.getElementById('intl-send-amount').value);
+        const sendMinor = Math.round(amountMajor * 100);
+        const benId = document.getElementById('intl-beneficiary').value;
+
+        const corridor = state.corridors.find(c => c.sourceCurrency === src && c.targetCurrency === tgt && c.enabled);
+        if (!corridor) {
+          toast('Corridor Not Transferable', `Pair ${src} → ${tgt} is indicative-display only or disabled in the corridor registry.`, 'error');
+          return;
+        }
+        if (sendMinor < corridor.minMinor || sendMinor > corridor.maxMinor) {
+          toast('Corridor Limit Violation', `Amount must be between ${formatMinor(corridor.minMinor, src)} and ${formatMinor(corridor.maxMinor, src)}.`, 'error');
+          return;
+        }
+
+        const midRate = getRate(src, tgt);
+        const custRate = midRate * (1 - corridor.fxMarkupBps / 10000);
+        const fixedFeeMinor = corridor.fixedFeeMinor;
+        const variableFeeMinor = Math.round((sendMinor * corridor.pctFeeBps) / 10000);
+        const taxAmountMinor = Math.round((sendMinor * corridor.taxBps) / 10000);
+        const totalFeeMinor = fixedFeeMinor + variableFeeMinor + taxAmountMinor;
+        const totalPayableMinor = sendMinor + totalFeeMinor;
+
+        const tgtDecimals = CURRENCIES[tgt]?.decimals ?? 2;
+        const recipientAmountMinor = Math.round(amountMajor * custRate * Math.pow(10, tgtDecimals));
+
+        const qId = 'qte_' + Math.random().toString(36).slice(2, 8);
+        const quote = {
+          id: qId,
+          userId: u.id,
+          beneficiaryId: benId,
+          sourceCurrency: src,
+          targetCurrency: tgt,
+          sendAmountMinor: sendMinor,
+          fixedFeeMinor,
+          variableFeeMinor,
+          taxAmountMinor,
+          totalFeeMinor,
+          totalPayableMinor,
+          midMarketRate: midRate.toFixed(4),
+          customerRate: custRate.toFixed(4),
+          fxMarkupBps: corridor.fxMarkupBps,
+          recipientAmountMinor,
+          delivery: corridor.delivery,
+          expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+          acceptedAt: null
+        };
+        state.quotes.unshift(quote);
+        state.activeQuoteId = qId;
+        state.currentScreen = 'quote_review';
+        saveState();
+        toast('Transfer Quote Generated', `Locked customer rate 1 ${src} = ${custRate.toFixed(4)} ${tgt} for 5 minutes.`, 'success');
+        renderAll();
+      };
+
+      function renderConverterScreen() {
+        const codes = Object.keys(CURRENCIES);
+        return `
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+              <div class="flex items-center justify-between">
+                <h2 class="text-lg font-bold">Indicative Currency Converter</h2>
+                <button type="button" onclick="window.gpToggleFxFeedState()" class="px-2.5 py-1 rounded-lg border border-purple-500/30 text-[11px] font-mono">
+                  ${state.fxFeedHealthy ? 'Simulate API Outage (Cached Mode)' : 'Restore Live Sandbox FX Feed'}
+                </button>
+              </div>
+
+              ${!state.fxFeedHealthy ? `
+                <div class="p-3 rounded-xl bg-amber-500/15 border border-amber-500/40 text-xs text-amber-200">
+                  <strong>FX Provider Degraded (Cached Fallback Active):</strong> Live rate feed is unreachable. Displaying clearly labelled cached snapshot from <code class="font-mono">${state.fxLastUpdated}</code>.
+                </div>
+              ` : `
+                <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-emerald-300">
+                  Indicative Mid-Market Feed Active • Source: GlobalPay FX Aggregator (${state.fxLastUpdated})
+                </div>
+              `}
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                <div>
+                  <label class="block text-xs font-medium mb-1">From Currency</label>
+                  <select id="conv-from" onchange="window.gpRunConversion()" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border">
+                    ${codes.map(c => `<option value="${c}" ${c === 'USD' ? 'selected' : ''}>${c} — ${CURRENCIES[c].name}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="flex justify-center">
+                  <button type="button" onclick="window.gpSwapConverterCurrencies()" class="px-3 py-2 rounded-xl border border-slate-300 dark:border-gp-border text-xs font-semibold hover:bg-purple-500/10">⇄ Swap</button>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1">To Currency</label>
+                  <select id="conv-to" onchange="window.gpRunConversion()" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border">
+                    ${codes.map(c => `<option value="${c}" ${c === 'INR' ? 'selected' : ''}>${c} — ${CURRENCIES[c].name}</option>`).join('')}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium mb-1">Amount to Convert</label>
+                <input id="conv-amount" type="number" step="0.01" min="0.01" value="100.00" oninput="window.gpRunConversion()" class="w-full px-3 py-2 rounded-xl text-sm font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+              </div>
+
+              <div id="conv-result-box" class="p-4 rounded-2xl bg-slate-100 dark:bg-gp-bg border border-purple-500/30 space-y-1">
+                <div class="text-xs text-slate-500">Indicative Mid-Market Result:</div>
+                <div class="text-2xl font-extrabold font-mono text-purple-500 dark:text-gp-lavender">100.00 USD = ₹8,395.00 INR</div>
+                <div class="text-[11px] font-mono text-slate-400">Direct Rate: 1 USD = 83.9500 INR • Inverse: 1 INR = 0.011912 USD</div>
+              </div>
+
+              <button type="button" onclick="window.gpSaveConversionRecord()" class="w-full py-2 rounded-xl bg-gp-electric text-white text-xs font-semibold">Record in Conversion History</button>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-6 space-y-3">
+              <h3 class="text-base font-bold">12 Supported Currencies & Recent Conversions</h3>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-mono">
+                ${codes.map(c => `
+                  <div class="p-2 rounded-lg bg-slate-100 dark:bg-gp-bg flex justify-between">
+                    <span class="font-bold">${c}</span>
+                    <span class="text-slate-400">${USD_MID_RATES[c].toFixed(c === 'JPY' ? 2 : 4)}</span>
+                  </div>
+                `).join('')}
+              </div>
+              <div class="pt-3 border-t border-slate-200 dark:border-gp-border space-y-1.5">
+                <div class="text-xs font-semibold">Recent Conversion Log:</div>
+                ${state.conversionHistory.map(h => `
+                  <div class="text-xs font-mono flex justify-between p-2 rounded-lg bg-slate-100/70 dark:bg-gp-bg/60">
+                    <span>${h.amountMajor} ${h.from} → ${h.convertedMajor} ${h.to}</span>
+                    <span class="text-slate-400">@ ${h.rate}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpToggleFxFeedState = function () {
+        state.fxFeedHealthy = !state.fxFeedHealthy;
+        saveState();
+        renderAll();
+      };
+
+      window.gpSwapConverterCurrencies = function () {
+        const fromEl = document.getElementById('conv-from');
+        const toEl = document.getElementById('conv-to');
+        if (!fromEl || !toEl) return;
+        const tmp = fromEl.value;
+        fromEl.value = toEl.value;
+        toEl.value = tmp;
+        window.gpRunConversion();
+      };
+
+      window.gpRunConversion = function () {
+        const from = document.getElementById('conv-from')?.value || 'USD';
+        const to = document.getElementById('conv-to')?.value || 'INR';
+        const amt = parseFloat(document.getElementById('conv-amount')?.value || '0') || 0;
+        const rate = getRate(from, to);
+        const inv = 1 / rate;
+        const dec = CURRENCIES[to]?.decimals ?? 2;
+        const converted = (amt * rate).toFixed(dec);
+        const box = document.getElementById('conv-result-box');
+        if (box) {
+          box.innerHTML = `
+            <div class="text-xs text-slate-500">Indicative Mid-Market Result (${state.fxFeedHealthy ? 'Live Sandbox Feed' : 'Cached Snapshot'}):</div>
+            <div class="text-2xl font-extrabold font-mono text-purple-500 dark:text-gp-lavender">${amt.toFixed(2)} ${from} = ${CURRENCIES[to].symbol}${converted} ${to}</div>
+            <div class="text-[11px] font-mono text-slate-400">Direct Rate: 1 ${from} = ${rate.toFixed(4)} ${to} • Inverse: 1 ${to} = ${inv.toFixed(6)} ${from}</div>
+          `;
+        }
+      };
+
+      window.gpSaveConversionRecord = function () {
+        const from = document.getElementById('conv-from')?.value || 'USD';
+        const to = document.getElementById('conv-to')?.value || 'INR';
+        const amt = parseFloat(document.getElementById('conv-amount')?.value || '100') || 100;
+        const rate = getRate(from, to);
+        const dec = CURRENCIES[to]?.decimals ?? 2;
+        state.conversionHistory.unshift({
+          from,
+          to,
+          amountMajor: amt.toFixed(2),
+          convertedMajor: (amt * rate).toFixed(dec),
+          rate: rate.toFixed(4),
+          time: new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC'
+        });
+        saveState();
+        toast('Conversion Saved', `Logged ${amt.toFixed(2)} ${from} → ${to} conversion.`, 'success');
+        renderAll();
+      };
+
+      function renderRecipientsScreen() {
+        const u = currentUser();
+        const bens = state.beneficiaries.filter(b => b.userId === u.id);
+        return `
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+              <h2 class="text-lg font-bold">Add Verified Sandbox Beneficiary</h2>
+              <form onsubmit="window.gpAddBeneficiary(event)" class="space-y-3">
+                <div>
+                  <label class="block text-xs font-medium mb-1">Full Name</label>
+                  <input id="ben-name" type="text" required placeholder="Priya Sharma" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Country Code</label>
+                    <input id="ben-country" type="text" required value="IN" maxlength="2" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Currency</label>
+                    <select id="ben-currency" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border">
+                      <option value="INR">INR</option>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="GBP">GBP</option>
+                      <option value="JPY">JPY</option>
+                      <option value="SGD">SGD</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Bank Name</label>
+                    <input id="ben-bank" type="text" required value="ICICI Sandbox Bank" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Routing / IFSC / IBAN / Sort</label>
+                    <input id="ben-routing" type="text" required value="ICIC0000104" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1">Account Mask or UPI Handle</label>
+                  <input id="ben-mask" type="text" required value="•••• 4910" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-gp-electric text-white text-xs font-semibold">Save & Verify Beneficiary</button>
+              </form>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-6 space-y-3">
+              <h3 class="text-base font-bold">Permitted Beneficiaries (${bens.length})</h3>
+              <div class="space-y-2.5">
+                ${bens.map(b => `
+                  <div class="p-3.5 rounded-xl bg-slate-100 dark:bg-gp-bg border border-slate-200 dark:border-gp-border flex items-center justify-between">
+                    <div>
+                      <div class="text-xs font-bold">${b.fullName} <span class="font-mono text-purple-400">(${b.currency} • ${b.countryCode})</span></div>
+                      <div class="text-[11px] font-mono text-slate-500">${b.bankName} • ${b.routingCode} • ${b.accountMask}</div>
+                    </div>
+                    <button type="button" onclick="window.gpDeleteBeneficiary('${b.id}')" class="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-400 text-xs font-semibold">Remove</button>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpAddBeneficiary = function (e) {
+        e.preventDefault();
+        const u = currentUser();
+        const fullName = document.getElementById('ben-name').value.trim();
+        const countryCode = document.getElementById('ben-country').value.trim().toUpperCase();
+        const currency = document.getElementById('ben-currency').value;
+        const bankName = document.getElementById('ben-bank').value.trim();
+        const routingCode = document.getElementById('ben-routing').value.trim();
+        const accountMask = document.getElementById('ben-mask').value.trim();
+        state.beneficiaries.unshift({
+          id: 'ben_' + Math.random().toString(36).slice(2, 8),
+          userId: u.id,
+          fullName,
+          handleOrUpi: accountMask,
+          countryCode,
+          currency,
+          bankName,
+          accountMask,
+          routingCode,
+          rail: 'SANDBOX_VERIFIED_RAIL',
+          isFavorite: true
+        });
+        saveState();
+        toast('Beneficiary Added', `${fullName} (${currency}) saved to your verified list.`, 'success');
+        renderAll();
+      };
+
+      window.gpDeleteBeneficiary = function (id) {
+        state.beneficiaries = state.beneficiaries.filter(b => b.id !== id);
+        saveState();
+        toast('Beneficiary Removed', 'Recipient removed from your saved list.', 'info');
+        renderAll();
+      };
+
+      function renderQuoteReviewScreen() {
+        const q = state.quotes.find(x => x.id === state.activeQuoteId) || state.quotes[0];
+        if (!q) {
+          return `<div class="glass-panel rounded-2xl p-6 text-xs">No active quote found. <button type="button" onclick="window.gpNavigate('intl')" class="text-purple-400 underline">Create a quote first</button>.</div>`;
+        }
+        const ben = state.beneficiaries.find(b => b.id === q.beneficiaryId) || state.beneficiaries[0];
+        const isExpired = new Date(q.expiresAt).getTime() <= Date.now();
+        return `
+          <div class="max-w-2xl mx-auto glass-panel rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-gp-border pb-3">
+              <div>
+                <span class="text-[11px] font-mono text-purple-400">QUOTE ID: ${q.id}</span>
+                <h2 class="text-lg font-bold">Review International Transfer Quote</h2>
+              </div>
+              <span class="px-2.5 py-1 rounded-full text-xs font-mono font-bold ${isExpired ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}">
+                ${isExpired ? 'EXPIRED' : 'VALID • 5-MIN LOCK'}
+              </span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-xs font-mono">
+              <div class="p-3 rounded-xl bg-slate-100 dark:bg-gp-bg">
+                <div class="text-slate-400">You Send</div>
+                <div class="text-lg font-bold">${formatMinor(q.sendAmountMinor, q.sourceCurrency)} ${q.sourceCurrency}</div>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-100 dark:bg-gp-bg">
+                <div class="text-slate-400">Recipient Gets (${ben?.fullName || 'Beneficiary'})</div>
+                <div class="text-lg font-bold text-emerald-400">${formatMinor(q.recipientAmountMinor, q.targetCurrency)} ${q.targetCurrency}</div>
+              </div>
+            </div>
+
+            <div class="space-y-1.5 text-xs border-t border-b border-slate-200 dark:border-gp-border py-3">
+              <div class="flex justify-between"><span>Mid-Market Rate</span><span class="font-mono">1 ${q.sourceCurrency} = ${q.midMarketRate} ${q.targetCurrency}</span></div>
+              <div class="flex justify-between"><span>Customer Guaranteed Rate (Markup ${q.fxMarkupBps} bps)</span><span class="font-mono font-semibold">1 ${q.sourceCurrency} = ${q.customerRate} ${q.targetCurrency}</span></div>
+              <div class="flex justify-between"><span>Fixed Corridor Fee</span><span class="font-mono">${formatMinor(q.fixedFeeMinor, q.sourceCurrency)}</span></div>
+              <div class="flex justify-between"><span>Variable Corridor Fee</span><span class="font-mono">${formatMinor(q.variableFeeMinor, q.sourceCurrency)}</span></div>
+              <div class="flex justify-between"><span>Applicable Tax / Remittance Levy</span><span class="font-mono">${formatMinor(q.taxAmountMinor, q.sourceCurrency)}</span></div>
+              <div class="flex justify-between font-bold text-sm pt-1"><span>Total Payable Debit</span><span class="font-mono text-purple-400">${formatMinor(q.totalPayableMinor, q.sourceCurrency)} ${q.sourceCurrency}</span></div>
+              <div class="flex justify-between text-[11px] text-slate-400"><span>Estimated Delivery</span><span>${q.delivery}</span></div>
+              <div class="flex justify-between text-[11px] text-slate-400"><span>Quote Expires At</span><span class="font-mono">${q.expiresAt}</span></div>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+              <button type="button" onclick="window.gpConfirmQuoteTransfer('${q.id}')" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-gp-electric to-gp-violet text-white font-semibold text-xs">
+                Accept Quote & Authorize Sandbox Transfer
+              </button>
+              <button type="button" onclick="window.gpForceExpireQuote('${q.id}')" class="px-3 py-2.5 rounded-xl border border-rose-500/40 text-rose-400 text-xs font-semibold">
+                Simulate Quote Expiry Test
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpForceExpireQuote = function (qId) {
+        const q = state.quotes.find(x => x.id === qId);
+        if (!q) return;
+        q.expiresAt = new Date(Date.now() - 60000).toISOString();
+        saveState();
+        toast('Quote Expired', 'Simulated quote expiration to verify server-side expiry rejection.', 'warn');
+        renderAll();
+      };
+
+      window.gpConfirmQuoteTransfer = function (qId) {
+        const q = state.quotes.find(x => x.id === qId);
+        if (!q) return;
+        if (new Date(q.expiresAt).getTime() <= Date.now()) {
+          toast('QUOTE_EXPIRED Rejected', 'Cannot execute transfer on an expired quote. Request a fresh quote in Send Globally.', 'error');
+          return;
+        }
+        if (q.acceptedAt) {
+          toast('Quote Already Used', 'This quote was already consumed by a transfer.', 'warn');
+          return;
+        }
+        const ben = state.beneficiaries.find(b => b.id === q.beneficiaryId) || state.beneficiaries[0];
+        q.acceptedAt = new Date().toISOString();
+        executeSandboxPayment({
+          type: 'INTERNATIONAL_TRANSFER',
+          sourceCurrency: q.sourceCurrency,
+          amountMinor: q.sendAmountMinor,
+          feeAmountMinor: q.fixedFeeMinor + q.variableFeeMinor,
+          taxAmountMinor: q.taxAmountMinor,
+          totalDebitedMinor: q.totalPayableMinor,
+          targetCurrency: q.targetCurrency,
+          targetAmountMinor: q.recipientAmountMinor,
+          exchangeRateUsed: q.customerRate,
+          recipientName: ben ? ben.fullName : 'International Beneficiary',
+          recipientIdentifier: ben ? `${ben.routingCode} / ${ben.accountMask}` : 'INTL-SANDBOX',
+          spendingCategory: 'Family & International',
+          idempotencyKey: 'idem_qte_' + q.id,
+          note: `International remittance (${q.sourceCurrency} → ${q.targetCurrency})`
+        });
+      };
+
+      function renderPaymentResultScreen() {
+        const tx = state.transactions.find(t => t.id === state.selectedTxId) || state.transactions[0];
+        if (!tx) return `<div class="glass-panel rounded-2xl p-6 text-xs">No transaction selected.</div>`;
+        return `
+          <div class="max-w-2xl mx-auto glass-panel rounded-2xl p-6 space-y-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-xs font-mono text-purple-400">${tx.referenceCode}</div>
+                <h2 class="text-xl font-extrabold mt-0.5">Transaction State: ${tx.state}</h2>
+              </div>
+              <span class="px-3 py-1 rounded-full text-xs font-mono font-bold ${tx.state === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400' : tx.state === 'PROCESSING' ? 'bg-amber-500/20 text-amber-300' : 'bg-rose-500/20 text-rose-400'}">
+                ${tx.state}
+              </span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-xs font-mono">
+              <div class="p-3 rounded-xl bg-slate-100 dark:bg-gp-bg">
+                <div class="text-slate-400">Total Debited</div>
+                <div class="text-lg font-bold">${formatMinor(tx.totalDebitedMinor, tx.sourceCurrency)} ${tx.sourceCurrency}</div>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-100 dark:bg-gp-bg">
+                <div class="text-slate-400">Recipient Amount (${tx.recipientName})</div>
+                <div class="text-lg font-bold text-emerald-400">${formatMinor(tx.targetAmountMinor, tx.targetCurrency)} ${tx.targetCurrency}</div>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Validated State Machine Event Log</div>
+              ${(tx.events || []).map(ev => `
+                <div class="p-2.5 rounded-xl bg-slate-100 dark:bg-gp-bg flex items-center justify-between text-xs">
+                  <div>
+                    <span class="font-mono font-bold text-purple-400">${ev.from} → ${ev.to}</span>
+                    <span class="ml-2 text-slate-500">(${ev.actor}: ${ev.reason})</span>
+                  </div>
+                  <span class="font-mono text-[10px] text-slate-400">${ev.time}</span>
+                </div>
+              `).join('')}
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <button type="button" onclick="window.gpOpenReceipt('${tx.id}')" class="px-4 py-2 rounded-xl bg-gp-electric text-white text-xs font-semibold">Open Official Receipt</button>
+              ${tx.state === 'PROCESSING' || tx.state === 'REQUIRES_INVESTIGATION' ? `
+                <button type="button" onclick="window.gpReconcileTransaction('${tx.id}', 'COMPLETED')" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold">Simulate Webhook Settlement (COMPLETED)</button>
+              ` : ''}
+              ${tx.state === 'COMPLETED' ? `
+                <button type="button" onclick="window.gpRefundTransaction('${tx.id}')" class="px-4 py-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold">Initiate Sandbox Refund</button>
+              ` : ''}
+              <button type="button" onclick="window.gpNavigate('activity')" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-gp-border text-xs font-semibold">View Activity History</button>
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpReconcileTransaction = function (txId, targetState) {
+        const tx = state.transactions.find(t => t.id === txId);
+        if (!tx) return;
+        const old = tx.state;
+        tx.state = targetState;
+        tx.events.push({
+          from: old,
+          to: targetState,
+          actor: 'PROVIDER_WEBHOOK',
+          reason: 'Reconciled via verified provider settlement event',
+          time: new Date().toISOString()
+        });
+        saveState();
+        toast('Transaction Reconciled', `${tx.referenceCode} transitioned ${old} → ${targetState}.`, 'success');
+        renderAll();
+      };
+
+      window.gpRefundTransaction = function (txId) {
+        const tx = state.transactions.find(t => t.id === txId);
+        if (!tx || tx.state !== 'COMPLETED') return;
+        tx.state = 'REFUNDED';
+        tx.events.push(
+          { from: 'COMPLETED', to: 'REFUND_PENDING', actor: 'USER', reason: 'Refund requested', time: new Date().toISOString() },
+          { from: 'REFUND_PENDING', to: 'REFUNDED', actor: 'PROVIDER_WEBHOOK', reason: 'Sandbox funds credited back to source account', time: new Date().toISOString() }
+        );
+        const acc = state.accounts.find(a => a.id === tx.sourceAccountId);
+        if (acc) acc.balanceMinor += tx.totalDebitedMinor;
+        recordAudit('TRANSACTION_REFUNDED', tx.referenceCode, 'SUCCESS', { amountMinor: tx.totalDebitedMinor });
+        saveState();
+        toast('Transaction Refunded', `Credited ${formatMinor(tx.totalDebitedMinor, tx.sourceCurrency)} back to account and excluded from active spend analytics.`, 'info');
+        renderAll();
+      };
+
+      function renderReceiptScreen() {
+        const tx = state.transactions.find(t => t.id === state.selectedTxId) || state.transactions[0];
+        if (!tx) return `<div class="glass-panel rounded-2xl p-6 text-xs">No transaction selected.</div>`;
+        return `
+          <div class="max-w-xl mx-auto glass-panel rounded-2xl p-6 space-y-4 border border-purple-500/40">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-gp-border pb-3">
+              <div>
+                <div class="text-xs font-extrabold tracking-wider uppercase text-purple-400">GlobalPay 2.0 • Sandbox Transaction Receipt</div>
+                <div class="text-[11px] text-slate-400">SIMULATED SANDBOX RECORD — NOT A LIVE BANK WIRE</div>
+              </div>
+              <span class="px-2.5 py-1 rounded text-xs font-mono font-bold bg-purple-500/20 text-purple-300">${tx.state}</span>
+            </div>
+
+            <div class="space-y-2 text-xs font-mono">
+              <div class="flex justify-between"><span>Receipt Reference:</span><span class="font-bold">${tx.referenceCode}</span></div>
+              <div class="flex justify-between"><span>Provider Reference:</span><span>${tx.providerReference}</span></div>
+              <div class="flex justify-between"><span>Timestamp (UTC):</span><span>${tx.createdAt}</span></div>
+              <div class="flex justify-between"><span>Recipient Name:</span><span class="font-bold">${tx.recipientName}</span></div>
+              <div class="flex justify-between"><span>Recipient Identifier (Redacted):</span><span>${tx.recipientIdentifier}</span></div>
+              <div class="flex justify-between"><span>Principal Amount:</span><span>${formatMinor(tx.sourceAmountMinor, tx.sourceCurrency)} ${tx.sourceCurrency}</span></div>
+              <div class="flex justify-between"><span>Total Fees & Taxes:</span><span>${formatMinor(tx.feeAmountMinor + tx.taxAmountMinor, tx.sourceCurrency)} ${tx.sourceCurrency}</span></div>
+              <div class="flex justify-between font-bold text-sm"><span>Total Debited:</span><span class="text-purple-400">${formatMinor(tx.totalDebitedMinor, tx.sourceCurrency)} ${tx.sourceCurrency}</span></div>
+              <div class="flex justify-between font-bold text-sm"><span>Recipient Settlement:</span><span class="text-emerald-400">${formatMinor(tx.targetAmountMinor, tx.targetCurrency)} ${tx.targetCurrency}</span></div>
+              <div class="flex justify-between"><span>Exchange Rate Applied:</span><span>${tx.exchangeRateUsed}</span></div>
+              <div class="flex justify-between"><span>Idempotency Key:</span><span>${tx.idempotencyKey}</span></div>
+            </div>
+
+            <div class="flex flex-wrap gap-2 pt-2 no-print">
+              <button type="button" onclick="window.gpDownloadReceiptFile('${tx.id}')" class="px-4 py-2 rounded-xl bg-gp-electric text-white text-xs font-semibold">Download Receipt (.txt / Printable)</button>
+              <button type="button" onclick="window.print()" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-gp-border text-xs font-semibold">Print / Save as PDF</button>
+              <button type="button" onclick="window.gpCopyShareReceiptLink('${tx.referenceCode}')" class="px-4 py-2 rounded-xl border border-purple-500/40 text-purple-400 text-xs font-semibold">Copy Privacy-Safe Share Link</button>
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpOpenReceipt = function (txId) {
+        state.selectedTxId = txId;
+        state.currentScreen = 'receipt';
+        saveState();
+        renderAll();
+      };
+
+      window.gpDownloadReceiptFile = function (txId) {
+        const tx = state.transactions.find(t => t.id === txId) || state.transactions[0];
+        if (!tx) return;
+        const lines = [
+          '============================================================',
+          'GLOBALPAY 2.0 — OFFICIAL SANDBOX TRANSACTION RECEIPT',
+          'ENVIRONMENT: SANDBOX SIMULATION (FICTIONAL FUNDS ONLY)',
+          '============================================================',
+          `Receipt Reference   : ${tx.referenceCode}`,
+          `Provider Reference  : ${tx.providerReference}`,
+          `Transaction State   : ${tx.state}`,
+          `Created Timestamp   : ${tx.createdAt}`,
+          `Recipient           : ${tx.recipientName} (${tx.recipientIdentifier})`,
+          `Source Amount       : ${formatMinor(tx.sourceAmountMinor, tx.sourceCurrency)} ${tx.sourceCurrency}`,
+          `Fees & Taxes        : ${formatMinor(tx.feeAmountMinor + tx.taxAmountMinor, tx.sourceCurrency)} ${tx.sourceCurrency}`,
+          `Total Debited       : ${formatMinor(tx.totalDebitedMinor, tx.sourceCurrency)} ${tx.sourceCurrency}`,
+          `Recipient Amount    : ${formatMinor(tx.targetAmountMinor, tx.targetCurrency)} ${tx.targetCurrency}`,
+          `Exchange Rate Used  : ${tx.exchangeRateUsed}`,
+          `Idempotency Key     : ${tx.idempotencyKey}`,
+          '============================================================'
+        ].join('\n');
+        const blob = new Blob([lines], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${tx.referenceCode}-receipt.txt`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        toast('Receipt Downloaded', `Saved ${tx.referenceCode}-receipt.txt`, 'success');
+      };
+
+      window.gpCopyShareReceiptLink = function (refCode) {
+        const shareUrl = `https://sandbox.globalpay.app/r/${refCode}?privacy=redacted`;
+        try {
+          const input = document.createElement('textarea');
+          input.value = shareUrl;
+          document.body.appendChild(input);
+          input.select();
+          document.execCommand('copy');
+          input.remove();
+        } catch (_e) {}
+        toast('Shareable Receipt Link Copied', `Copied privacy-safe link (${shareUrl}) excluding account balances.`, 'info');
+      };
+
+      function renderActivityScreen() {
+        const u = currentUser();
+        const f = state.activityFilters;
+        const userTxs = state.transactions.filter(t => {
+          if (u.role !== 'ADMIN' && t.userId !== u.id) return false;
+          if (f.type !== 'ALL' && t.type !== f.type) return false;
+          if (f.state !== 'ALL' && t.state !== f.state) return false;
+          if (f.currency !== 'ALL' && t.sourceCurrency !== f.currency && t.targetCurrency !== f.currency) return false;
+          if (f.search) {
+            const q = f.search.toLowerCase();
+            const match = t.referenceCode.toLowerCase().includes(q) || t.recipientName.toLowerCase().includes(q) || (t.note || '').toLowerCase().includes(q);
+            if (!match) return false;
+          }
+          return true;
+        });
+
+        return `
+          <div class="space-y-4">
+            <div class="glass-panel rounded-2xl p-5 grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <div>
+                <label class="block text-[11px] font-medium mb-1">Search Ref / Recipient / Note</label>
+                <input type="text" value="${f.search}" oninput="window.gpUpdateActivityFilter('search', this.value)" placeholder="Search ledger..." class="w-full px-3 py-1.5 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-medium mb-1">Transaction Type</label>
+                <select onchange="window.gpUpdateActivityFilter('type', this.value)" class="w-full px-3 py-1.5 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border">
+                  <option value="ALL" ${f.type === 'ALL' ? 'selected' : ''}>All Types</option>
+                  <option value="INTERNATIONAL_TRANSFER" ${f.type === 'INTERNATIONAL_TRANSFER' ? 'selected' : ''}>International Transfer</option>
+                  <option value="DOMESTIC_P2P" ${f.type === 'DOMESTIC_P2P' ? 'selected' : ''}>Domestic P2P</option>
+                  <option value="QR_PAY" ${f.type === 'QR_PAY' ? 'selected' : ''}>QR Pay</option>
+                  <option value="REQUEST_SETTLEMENT" ${f.type === 'REQUEST_SETTLEMENT' ? 'selected' : ''}>Request Settlement</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[11px] font-medium mb-1">Lifecycle State</label>
+                <select onchange="window.gpUpdateActivityFilter('state', this.value)" class="w-full px-3 py-1.5 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border">
+                  <option value="ALL" ${f.state === 'ALL' ? 'selected' : ''}>All States</option>
+                  <option value="COMPLETED" ${f.state === 'COMPLETED' ? 'selected' : ''}>COMPLETED</option>
+                  <option value="PROCESSING" ${f.state === 'PROCESSING' ? 'selected' : ''}>PROCESSING</option>
+                  <option value="REFUNDED" ${f.state === 'REFUNDED' ? 'selected' : ''}>REFUNDED</option>
+                  <option value="FAILED" ${f.state === 'FAILED' ? 'selected' : ''}>FAILED</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[11px] font-medium mb-1">Currency</label>
+                <select onchange="window.gpUpdateActivityFilter('currency', this.value)" class="w-full px-3 py-1.5 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border">
+                  <option value="ALL" ${f.currency === 'ALL' ? 'selected' : ''}>All Currencies</option>
+                  <option value="USD" ${f.currency === 'USD' ? 'selected' : ''}>USD</option>
+                  <option value="INR" ${f.currency === 'INR' ? 'selected' : ''}>INR</option>
+                  <option value="EUR" ${f.currency === 'EUR' ? 'selected' : ''}>EUR</option>
+                  <option value="GBP" ${f.currency === 'GBP' ? 'selected' : ''}>GBP</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-5 overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="text-[11px] uppercase text-slate-400 border-b border-slate-200 dark:border-gp-border">
+                  <tr>
+                    <th class="py-2 pr-3">Reference</th>
+                    <th class="py-2 pr-3">Recipient</th>
+                    <th class="py-2 pr-3">Category</th>
+                    <th class="py-2 pr-3">State</th>
+                    <th class="py-2 pr-3 text-right">Debited</th>
+                    <th class="py-2 pr-3 text-right">Settlement</th>
+                    <th class="py-2 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200/60 dark:divide-gp-border/50">
+                  ${userTxs.map(tx => `
+                    <tr>
+                      <td class="py-2.5 pr-3 font-mono text-[11px]">${tx.referenceCode}</td>
+                      <td class="py-2.5 pr-3 font-semibold">${tx.recipientName}<div class="text-[10px] text-slate-400">${tx.note || ''}</div></td>
+                      <td class="py-2.5 pr-3">${tx.spendingCategory}</td>
+                      <td class="py-2.5 pr-3"><span class="px-2 py-0.5 rounded font-mono text-[10px] font-bold ${tx.state === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400' : tx.state === 'PROCESSING' ? 'bg-amber-500/20 text-amber-300' : 'bg-rose-500/20 text-rose-400'}">${tx.state}</span></td>
+                      <td class="py-2.5 pr-3 text-right font-mono">${formatMinor(tx.totalDebitedMinor, tx.sourceCurrency)}</td>
+                      <td class="py-2.5 pr-3 text-right font-mono text-emerald-400">${formatMinor(tx.targetAmountMinor, tx.targetCurrency)}</td>
+                      <td class="py-2.5 text-right space-x-2">
+                        <button type="button" onclick="window.gpOpenReceipt('${tx.id}')" class="text-purple-400 hover:underline font-semibold">Receipt</button>
+                        <button type="button" onclick="window.gpInspectTxResult('${tx.id}')" class="text-indigo-400 hover:underline font-semibold">State Log</button>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpUpdateActivityFilter = function (key, val) {
+        state.activityFilters[key] = val;
+        saveState();
+        renderAll();
+      };
+
+      window.gpInspectTxResult = function (txId) {
+        state.selectedTxId = txId;
+        state.currentScreen = 'payment_result';
+        saveState();
+        renderAll();
+      };
+
+      function renderInsightsScreen() {
+        const u = currentUser();
+        const completedTxs = state.transactions.filter(t => t.userId === u.id && t.state === 'COMPLETED' && t.type !== 'SANDBOX_TOPUP');
+        const refundedTxs = state.transactions.filter(t => t.userId === u.id && t.state === 'REFUNDED');
+        const totalCompletedMinor = completedTxs.reduce((acc, t) => acc + t.totalDebitedMinor, 0);
+        const totalRefundedMinor = refundedTxs.reduce((acc, t) => acc + t.totalDebitedMinor, 0);
+
+        return `
+          <div class="space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div class="glass-panel rounded-2xl p-5">
+                <div class="text-xs text-slate-400">Net Completed Spend (Oct 2026)</div>
+                <div class="text-2xl font-extrabold font-mono mt-1">${formatMinor(totalCompletedMinor, 'USD')}</div>
+                <div class="text-[11px] text-emerald-400 mt-1">Derived strictly from ${completedTxs.length} COMPLETED ledger entries</div>
+              </div>
+              <div class="glass-panel rounded-2xl p-5">
+                <div class="text-xs text-slate-400">Refunded / Reversed (Excluded)</div>
+                <div class="text-2xl font-extrabold font-mono mt-1 text-amber-400">${formatMinor(totalRefundedMinor, 'USD')}</div>
+                <div class="text-[11px] text-slate-400 mt-1">${refundedTxs.length} refunded items excluded from spend totals</div>
+              </div>
+              <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between">
+                <div class="text-xs text-slate-400">Exportable Financial Summary</div>
+                <button type="button" onclick="window.gpExportSpendCsv()" class="mt-2 py-2 px-3 rounded-xl bg-gp-electric text-white text-xs font-semibold">Download CSV Financial Summary</button>
+              </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-6">
+              <h3 class="text-base font-bold mb-1">Category Spend Distribution (Real Ledger Data)</h3>
+              <p class="text-xs text-slate-500 dark:text-purple-200/70 mb-4">Refunded, cancelled, and failed transactions are automatically excluded so events are never double-counted.</p>
+              <div class="relative h-72 w-full">
+                <canvas id="spend-analytics-chart"></canvas>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function mountSpendChart() {
+        const canvas = document.getElementById('spend-analytics-chart');
+        if (!canvas || typeof Chart === 'undefined') return;
+        if (activeChartInstance) {
+          activeChartInstance.destroy();
+          activeChartInstance = null;
+        }
+        const u = currentUser();
+        const completedTxs = state.transactions.filter(t => t.userId === u.id && t.state === 'COMPLETED' && t.type !== 'SANDBOX_TOPUP');
+        const byCat = {};
+        completedTxs.forEach(t => {
+          byCat[t.spendingCategory] = (byCat[t.spendingCategory] || 0) + t.totalDebitedMinor / 100;
+        });
+        const labels = Object.keys(byCat);
+        const values = Object.values(byCat);
+
+        activeChartInstance = new Chart(canvas, {
+          type: 'bar',
+          data: {
+            labels: labels.length ? labels : ['No Completed Spend'],
+            datasets: [{
+              label: 'Completed Spend (USD)',
+              data: values.length ? values : [0],
+              backgroundColor: ['#8B5CF6', '#6D28D9', '#10B981', '#F59E0B', '#EC4899'],
+              borderRadius: 8
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, ticks: { color: '#C4B5FD' } },
+              x: { ticks: { color: '#C4B5FD' } }
+            }
+          }
+        });
+      }
+
+      window.gpExportSpendCsv = function () {
+        const u = currentUser();
+        const rows = [['Reference', 'Date', 'Type', 'State', 'Category', 'Recipient', 'DebitedMinor', 'Currency']];
+        state.transactions.filter(t => t.userId === u.id).forEach(t => {
+          rows.push([t.referenceCode, t.createdAt, t.type, t.state, t.spendingCategory, t.recipientName, t.totalDebitedMinor, t.sourceCurrency]);
+        });
+        const csv = rows.map(r => r.join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `GlobalPay-${u.handle}-spend-summary.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        toast('CSV Summary Exported', 'Downloaded ledger financial summary.', 'success');
+      };
+
+      function renderBudgetsScreen() {
+        const u = currentUser();
+        const userBudgets = state.budgets.filter(b => b.userId === u.id);
+        return `
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+              <h2 class="text-lg font-bold">Create or Update Monthly Budget</h2>
+              <form onsubmit="window.gpSaveBudget(event)" class="space-y-3">
+                <div>
+                  <label class="block text-xs font-medium mb-1">Spending Category</label>
+                  <select id="bdg-category" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border">
+                    <option value="Family & International">Family & International</option>
+                    <option value="Dining & Nightlife">Dining & Nightlife</option>
+                    <option value="Shopping & Gear">Shopping & Gear</option>
+                    <option value="Software & Cloud">Software & Cloud</option>
+                  </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Monthly Limit (USD)</label>
+                    <input id="bdg-limit" type="number" step="10" min="20" required value="600" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium mb-1">Alert Threshold (%)</label>
+                    <input id="bdg-threshold" type="number" min="50" max="100" required value="80" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                  </div>
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-gp-electric text-white text-xs font-semibold">Save Category Budget</button>
+              </form>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-6 space-y-3">
+              <h3 class="text-base font-bold">Active October 2026 Budgets</h3>
+              ${userBudgets.map(b => `
+                <div class="p-3.5 rounded-xl bg-slate-100 dark:bg-gp-bg flex items-center justify-between">
+                  <div>
+                    <div class="text-xs font-bold">${b.category}</div>
+                    <div class="text-[11px] font-mono text-slate-400">Cap: ${formatMinor(b.limitMinor, b.currency)} • Alert @ ${b.thresholdPct}%</div>
+                  </div>
+                  <button type="button" onclick="window.gpDeleteBudget('${b.id}')" class="text-rose-400 text-xs font-semibold hover:underline">Delete</button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpSaveBudget = function (e) {
+        e.preventDefault();
+        const u = currentUser();
+        const category = document.getElementById('bdg-category').value;
+        const limitMinor = Math.round(parseFloat(document.getElementById('bdg-limit').value) * 100);
+        const thresholdPct = parseInt(document.getElementById('bdg-threshold').value, 10);
+        const existing = state.budgets.find(b => b.userId === u.id && b.category === category);
+        if (existing) {
+          existing.limitMinor = limitMinor;
+          existing.thresholdPct = thresholdPct;
+        } else {
+          state.budgets.push({ id: 'bdg_' + Date.now(), userId: u.id, category, currency: 'USD', limitMinor, thresholdPct, month: '2026-10' });
+        }
+        saveState();
+        toast('Budget Saved', `Updated ${category} monthly cap to ${formatMinor(limitMinor, 'USD')}.`, 'success');
+        renderAll();
+      };
+
+      window.gpDeleteBudget = function (id) {
+        state.budgets = state.budgets.filter(b => b.id !== id);
+        saveState();
+        toast('Budget Removed', 'Deleted category budget.', 'info');
+        renderAll();
+      };
+
+      function renderNotificationsScreen() {
+        const u = currentUser();
+        const list = state.notifications.filter(n => n.userId === u.id);
+        return `
+          <div class="glass-panel rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-bold">In-App Notifications (${list.length})</h2>
+              <button type="button" onclick="window.gpMarkAllNotificationsRead()" class="text-xs text-purple-400 hover:underline font-semibold">Mark All Read</button>
+            </div>
+            <div class="space-y-2.5">
+              ${list.map(n => `
+                <div class="p-3.5 rounded-xl border ${n.isRead ? 'bg-slate-100/50 dark:bg-gp-bg/40 border-slate-200 dark:border-gp-border' : 'bg-purple-500/10 border-purple-500/40'} flex items-center justify-between">
+                  <div>
+                    <div class="text-xs font-bold">${n.title}</div>
+                    <div class="text-[11px] text-slate-500 dark:text-purple-200/70">${n.message}</div>
+                    <div class="text-[10px] font-mono text-slate-400 mt-1">${n.time}</div>
+                  </div>
+                  <button type="button" onclick="window.gpDismissNotification('${n.id}')" class="text-xs text-slate-400 hover:text-rose-400 px-2">Dismiss</button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpMarkAllNotificationsRead = function () {
+        const u = currentUser();
+        state.notifications.forEach(n => { if (n.userId === u.id) n.isRead = true; });
+        saveState();
+        renderAll();
+      };
+
+      window.gpDismissNotification = function (id) {
+        state.notifications = state.notifications.filter(n => n.id !== id);
+        saveState();
+        renderAll();
+      };
+
+      function renderProfileScreen() {
+        const u = currentUser();
+        return `
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+              <h2 class="text-lg font-bold">Edit Profile & Preferences</h2>
+              <form onsubmit="window.gpSaveProfile(event)" class="space-y-3">
+                <div>
+                  <label class="block text-xs font-medium mb-1">Full Name</label>
+                  <input id="prof-name" type="text" required value="${u.fullName}" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1">Phone Number</label>
+                  <input id="prof-phone" type="text" value="${u.phone || ''}" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                </div>
+                <div class="flex items-center gap-3 text-xs">
+                  <label class="flex items-center gap-1.5"><input id="prof-mfa" type="checkbox" ${u.mfaEnabled ? 'checked' : ''} /> Enable Multi-Factor Auth (MFA)</label>
+                  <label class="flex items-center gap-1.5"><input id="prof-email-notif" type="checkbox" ${u.notifyEmail ? 'checked' : ''} /> Email Alerts</label>
+                </div>
+                <button type="submit" class="px-4 py-2 rounded-xl bg-gp-electric text-white text-xs font-semibold">Save Profile Settings</button>
+              </form>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+              <h3 class="text-base font-bold text-rose-400">Account Deactivation & 7-Year Retention Policy</h3>
+              <p class="text-xs text-slate-500 dark:text-purple-200/70">
+                Deactivating your account immediately revokes active sessions and blocks new transactions. Statutory financial ledger entries are retained under an encrypted 7-year compliance hold before automated PII anonymization.
+              </p>
+              <button type="button" onclick="window.gpDeactivateAccount()" class="px-4 py-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/40 text-xs font-semibold">
+                Deactivate Current Sandbox Account
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpSaveProfile = function (e) {
+        e.preventDefault();
+        const u = currentUser();
+        u.fullName = document.getElementById('prof-name').value.trim();
+        u.phone = document.getElementById('prof-phone').value.trim();
+        u.mfaEnabled = document.getElementById('prof-mfa').checked;
+        u.notifyEmail = document.getElementById('prof-email-notif').checked;
+        recordAudit('PROFILE_UPDATED', u.id, 'SUCCESS', { mfaEnabled: u.mfaEnabled });
+        saveState();
+        toast('Profile Updated', 'Saved security and notification preferences.', 'success');
+        renderAll();
+      };
+
+      window.gpDeactivateAccount = function () {
+        const u = currentUser();
+        if (u.id === 'usr_maya') {
+          toast('Demo Guard', 'Switch to a newly registered account or Alex Rivera to test account deactivation so the primary demo persona stays active.', 'warn');
+          return;
+        }
+        u.status = 'DEACTIVATED';
+        recordAudit('ACCOUNT_DEACTIVATED', u.id, 'SUCCESS', { retentionYears: 7 });
+        state.currentUserId = 'usr_maya';
+        state.currentScreen = 'auth';
+        saveState();
+        toast('Account Deactivated', 'Session revoked and 7-year statutory ledger retention hold applied.', 'info');
+        renderAll();
+      };
+
+      function renderCopilotScreen() {
+        return `
+          <div class="glass-panel rounded-2xl p-6 space-y-4 max-w-3xl mx-auto">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-gp-border pb-3">
+              <div>
+                <h2 class="text-lg font-bold">GP Copilot — Scoped Financial Assistant</h2>
+                <p class="text-xs text-slate-500 dark:text-purple-200/70">Read-only access to your authenticated ledger. Never executes transfers, bypasses limits, or ingests raw credentials.</p>
+              </div>
+              <span class="px-2.5 py-1 rounded bg-purple-500/20 text-purple-300 font-mono text-[11px]">Rule-Based Sandbox Mode</span>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <button type="button" onclick="window.gpAskCopilot('Summarize my completed October spending')" class="px-3 py-1.5 rounded-xl bg-purple-500/15 text-xs hover:bg-purple-500/25">Summarize my spending</button>
+              <button type="button" onclick="window.gpAskCopilot('Compare USD to INR vs USD to GBP corridor fees')" class="px-3 py-1.5 rounded-xl bg-purple-500/15 text-xs hover:bg-purple-500/25">Compare corridor fees</button>
+              <button type="button" onclick="window.gpAskCopilot('Flag any pending or unusual activity')" class="px-3 py-1.5 rounded-xl bg-purple-500/15 text-xs hover:bg-purple-500/25">Check unusual activity</button>
+            </div>
+
+            <div class="space-y-2.5 max-h-80 overflow-y-auto custom-scroll p-2">
+              ${state.copilotHistory.map(m => `
+                <div class="p-3.5 rounded-2xl text-xs ${m.role === 'user' ? 'bg-gp-electric text-white ml-12' : 'bg-slate-100 dark:bg-gp-bg mr-12 border border-purple-500/20'}">
+                  <div class="font-bold text-[10px] uppercase opacity-75 mb-1">${m.role === 'user' ? 'You' : 'GP Copilot'}</div>
+                  <div>${m.text}</div>
+                </div>
+              `).join('')}
+            </div>
+
+            <form onsubmit="window.gpSubmitCopilotForm(event)" class="flex gap-2">
+              <input id="copilot-input" type="text" required placeholder="Ask GP Copilot about your spending, quotes, or budgets..." class="flex-1 px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+              <button type="submit" class="px-4 py-2 rounded-xl bg-gp-electric text-white text-xs font-semibold">Ask Copilot</button>
+            </form>
+          </div>
+        `;
+      }
+
+      window.gpSubmitCopilotForm = function (e) {
+        e.preventDefault();
+        const input = document.getElementById('copilot-input');
+        const q = input.value.trim();
+        input.value = '';
+        window.gpAskCopilot(q);
+      };
+
+      window.gpAskCopilot = function (queryText) {
+        const u = currentUser();
+        state.copilotHistory.push({ role: 'user', text: queryText });
+        const q = queryText.toLowerCase();
+        const txs = state.transactions.filter(t => t.userId === u.id);
+        const completed = txs.filter(t => t.state === 'COMPLETED' && t.type !== 'SANDBOX_TOPUP');
+        const totalMinor = completed.reduce((acc, t) => acc + t.totalDebitedMinor, 0);
+
+        let reply = '';
+        if (q.includes('spend') || q.includes('summar') || q.includes('budget')) {
+          reply = `For ${u.fullName}, you have ${completed.length} completed spend transactions totaling ${formatMinor(totalMinor, 'USD')} USD. Refunded and pending items are excluded from your spend total.`;
+        } else if (q.includes('fee') || q.includes('corridor') || q.includes('compare')) {
+          reply = `USD → INR (IMPS/UPI Sandbox) charges $2.99 fixed + 0.45% variable fee + 35 bps FX markup. USD → GBP (Faster Payments) charges $1.99 fixed + 0.35% variable fee + 25 bps FX markup.`;
+        } else if (q.includes('unusual') || q.includes('pending') || q.includes('flag')) {
+          const pending = txs.filter(t => t.state === 'PROCESSING' || t.state === 'REQUIRES_INVESTIGATION');
+          reply = pending.length
+            ? `Advisory Review Flag: You have ${pending.length} transaction(s) in ${pending[0].state} state (${pending[0].referenceCode} for ${formatMinor(pending[0].totalDebitedMinor, pending[0].sourceCurrency)}). Note: Copilot provides informational review flags only and never makes automated fraud determinations.`
+            : `No pending or unusual transactions detected in your ledger.`;
+        } else {
+          reply = `Scoped Copilot Response: Your active USD balance is ${formatMinor(state.accounts.find(a => a.userId === u.id && a.currency === 'USD')?.balanceMinor || 0, 'USD')}. Remember I am a read-only assistant and cannot execute or approve transfers on your behalf.`;
+        }
+        state.copilotHistory.push({ role: 'assistant', text: reply });
+        saveState();
+        renderAll();
+      };
+
+      function renderCorridorsScreen() {
+        return `
+          <div class="glass-panel rounded-2xl p-6 space-y-4">
+            <h2 class="text-lg font-bold">Supported Countries, Currencies & Corridor Registry</h2>
+            <p class="text-xs text-slate-500 dark:text-purple-200/70">Defines source/destination countries, payment rails, fee basis points, FX markup, and compliance eligibility rules.</p>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="text-[11px] uppercase text-slate-400 border-b border-slate-200 dark:border-gp-border">
+                  <tr>
+                    <th class="py-2 pr-3">Corridor</th>
+                    <th class="py-2 pr-3">Payment Rail</th>
+                    <th class="py-2 pr-3">Min / Max Limit</th>
+                    <th class="py-2 pr-3">Fixed + Var Fee</th>
+                    <th class="py-2 pr-3">FX Markup</th>
+                    <th class="py-2 pr-3">Delivery</th>
+                    <th class="py-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200/60 dark:divide-gp-border/50 font-mono">
+                  ${state.corridors.map(c => `
+                    <tr>
+                      <td class="py-2.5 pr-3 font-bold">${c.sourceCountry} (${c.sourceCurrency}) → ${c.destinationCountry} (${c.targetCurrency})</td>
+                      <td class="py-2.5 pr-3">${c.rail}</td>
+                      <td class="py-2.5 pr-3">${formatMinor(c.minMinor, c.sourceCurrency)} – ${formatMinor(c.maxMinor, c.sourceCurrency)}</td>
+                      <td class="py-2.5 pr-3">${formatMinor(c.fixedFeeMinor, c.sourceCurrency)} + ${(c.pctFeeBps/100).toFixed(2)}%</td>
+                      <td class="py-2.5 pr-3">${c.fxMarkupBps} bps</td>
+                      <td class="py-2.5 pr-3 font-sans">${c.delivery}</td>
+                      <td class="py-2.5"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px]">${c.enabled ? 'ENABLED' : 'DISABLED'}</span></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderSupportScreen() {
+        return `
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+              <h2 class="text-lg font-bold">Open Support or Reconciliation Inquiry</h2>
+              <form onsubmit="window.gpSubmitSupportTicket(event)" class="space-y-3">
+                <div>
+                  <label class="block text-xs font-medium mb-1">Transaction Reference or Topic</label>
+                  <input id="sup-subject" type="text" required value="Verify settlement status for GP-SBX-20261024-E771B4" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                </div>
+                <button type="submit" class="px-4 py-2 rounded-xl bg-gp-electric text-white text-xs font-semibold">Submit Support Ticket</button>
+              </form>
+              <div class="space-y-2 pt-2">
+                ${state.supportTickets.map(t => `
+                  <div class="p-3 rounded-xl bg-slate-100 dark:bg-gp-bg flex justify-between text-xs">
+                    <span><strong>${t.id}:</strong> ${t.subject}</span>
+                    <span class="font-mono text-emerald-400">${t.status}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-6 space-y-3">
+              <h3 class="text-base font-bold">Real-World Licensing & Live Activation Checklist</h3>
+              <ul class="space-y-2 text-xs text-slate-500 dark:text-purple-200/80">
+                <li class="p-3 rounded-xl bg-slate-100 dark:bg-gp-bg"><strong>1. Licensed Partner Sponsorship:</strong> GlobalPay is software architecture; live money movement requires a licensed bank or money-transmitter API partner (e.g., Wise Platform, Stripe Treasury, Adyen).</li>
+                <li class="p-3 rounded-xl bg-slate-100 dark:bg-gp-bg"><strong>2. KYC / AML & Sanctions Screening:</strong> Activate live identity verification and OFAC screening webhooks before setting <code class="font-mono">PAYMENT_PROVIDER_MODE=live</code>.</li>
+                <li class="p-3 rounded-xl bg-slate-100 dark:bg-gp-bg"><strong>3. Zero Raw Credential Collection:</strong> GlobalPay never collects raw UPI PINs, bank passwords, or unverified OTPs.</li>
+              </ul>
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpSubmitSupportTicket = function (e) {
+        e.preventDefault();
+        const u = currentUser();
+        const subject = document.getElementById('sup-subject').value.trim();
+        state.supportTickets.unshift({
+          id: 'tkt_' + Math.floor(100 + Math.random() * 900),
+          userId: u.id,
+          subject,
+          status: 'OPEN',
+          createdAt: new Date().toISOString().slice(0, 10)
+        });
+        saveState();
+        toast('Support Ticket Logged', 'Compliance support team notified.', 'success');
+        renderAll();
+      };
+
+      function renderAdminScreen() {
+        const u = currentUser();
+        if (!u || u.role !== 'ADMIN') {
+          return `
+            <div class="glass-panel rounded-2xl p-8 max-w-xl mx-auto text-center space-y-4 border border-rose-500/40">
+              <div class="text-xs font-mono uppercase text-rose-400 font-bold">HTTP 403 FORBIDDEN • ROLE-BASED ACCESS CONTROL</div>
+              <h2 class="text-xl font-extrabold">Administrator Authorization Required</h2>
+              <p class="text-xs text-slate-500 dark:text-purple-200/70">
+                Your current session (<strong>${u ? u.fullName + ' — ' + u.role : 'Guest'}</strong>) does not have <code class="font-mono">ADMIN</code> privileges. This access attempt has been recorded in the audit log.
+              </p>
+              <button type="button" onclick="window.gpSwitchPersona('usr_admin')" class="px-4 py-2.5 rounded-xl bg-gp-electric text-white text-xs font-semibold">
+                Switch to Priya Nair (Compliance Ops ADMIN) to Inspect Admin Console
+              </button>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div class="glass-panel rounded-2xl p-4">
+                <div class="text-xs text-slate-400">Total Registered Users</div>
+                <div class="text-2xl font-extrabold font-mono">${state.users.length}</div>
+              </div>
+              <div class="glass-panel rounded-2xl p-4">
+                <div class="text-xs text-slate-400">Total Ledger Transactions</div>
+                <div class="text-2xl font-extrabold font-mono">${state.transactions.length}</div>
+              </div>
+              <div class="glass-panel rounded-2xl p-4">
+                <div class="text-xs text-slate-400">Provider Health</div>
+                <div class="text-sm font-extrabold font-mono text-emerald-400 mt-1">SANDBOX_OPERATIONAL</div>
+              </div>
+              <div class="glass-panel rounded-2xl p-4">
+                <div class="text-xs text-slate-400">Audit Events Logged</div>
+                <div class="text-2xl font-extrabold font-mono">${state.auditEvents.length}</div>
+              </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-5 space-y-3">
+              <h3 class="text-sm font-bold">Authorized Corridor Registry Controls (Audited)</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                ${state.corridors.map(c => `
+                  <div class="p-3 rounded-xl bg-slate-100 dark:bg-gp-bg flex items-center justify-between text-xs">
+                    <span class="font-mono font-bold">${c.sourceCurrency} → ${c.targetCurrency}</span>
+                    <button type="button" onclick="window.gpAdminToggleCorridor('${c.id}')" class="px-2.5 py-1 rounded font-mono text-[10px] font-bold ${c.enabled ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}">
+                      ${c.enabled ? 'ENABLED (Click to Pause)' : 'PAUSED (Click to Enable)'}
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-5 space-y-3">
+              <h3 class="text-sm font-bold">Immutable Redacted Security & Administrative Audit Log</h3>
+              <p class="text-xs text-slate-400">Administrators can never view plaintext passwords, session secrets, OTPs, or raw payment credentials.</p>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs font-mono">
+                  <thead class="text-[10px] uppercase text-slate-400 border-b border-slate-200 dark:border-gp-border">
+                    <tr>
+                      <th class="py-2 pr-3">Event ID</th>
+                      <th class="py-2 pr-3">Actor</th>
+                      <th class="py-2 pr-3">Action</th>
+                      <th class="py-2 pr-3">Resource</th>
+                      <th class="py-2 pr-3">Outcome</th>
+                      <th class="py-2 pr-3">Redacted Metadata</th>
+                      <th class="py-2">Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200/60 dark:divide-gp-border/50">
+                    ${state.auditEvents.slice(0, 12).map(a => `
+                      <tr>
+                        <td class="py-2 pr-3">${a.id}</td>
+                        <td class="py-2 pr-3">${a.actor}</td>
+                        <td class="py-2 pr-3 font-bold text-purple-400">${a.action}</td>
+                        <td class="py-2 pr-3">${a.resource}</td>
+                        <td class="py-2 pr-3">${a.outcome}</td>
+                        <td class="py-2 pr-3 text-[11px] text-slate-400">${a.meta}</td>
+                        <td class="py-2 text-[10px] text-slate-400">${a.time}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      window.gpAdminToggleCorridor = function (corId) {
+        const c = state.corridors.find(x => x.id === corId);
+        if (!c) return;
+        c.enabled = !c.enabled;
+        recordAudit('ADMIN_CORRIDOR_TOGGLE', `${c.sourceCurrency}_${c.targetCurrency}`, 'SUCCESS', { enabled: c.enabled });
+        saveState();
+        toast('Corridor Updated', `${c.sourceCurrency} → ${c.targetCurrency} is now ${c.enabled ? 'ENABLED' : 'PAUSED'}.`, 'info');
+        renderAll();
+      };
+
+
+      window.gpCopySnippet = function (elementId, label) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        const val = el.innerText || el.textContent || '';
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = val;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+          toast('Copied to Clipboard', label + ' copied and ready to paste.', 'success');
+        } catch (_e) {
+          toast('Copy Notice', 'Select and copy the snippet manually.', 'info');
+        }
+      };
+
+      window.gpUpdatePublishUrls = function () {
+        const userEl = document.getElementById('pub-gh-user');
+        const repoEl = document.getElementById('pub-gh-repo');
+        const user = (userEl ? userEl.value.trim() : '') || 'your-username';
+        const repo = (repoEl ? repoEl.value.trim() : '') || 'globalpay-2.0';
+        const cmdEl = document.getElementById('pub-git-cmds');
+        const pagesEl = document.getElementById('pub-pages-url');
+        if (cmdEl) {
+          cmdEl.textContent = [
+            'unzip globalpay-2.0-fullstack.zip && cd globalpay-2.0',
+            'git init && git branch -M main',
+            'git add .',
+            'git commit -m "feat: publish GlobalPay 2.0 full-stack fintech app"',
+            `git remote add origin https://github.com/${user}/${repo}.git`,
+            'git push -u origin main'
+          ].join('\n');
+        }
+        if (pagesEl) {
+          pagesEl.textContent = `https://${user}.github.io/${repo}/`;
+        }
+      };
+
+      function renderPublishHubScreen() {
+        return `
+          <div class="space-y-6">
+            <div class="glass-panel rounded-2xl p-6 border border-emerald-500/30 space-y-4">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <span class="text-[11px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">Ready to Publish</span>
+                  <h2 class="text-xl font-extrabold mt-1">GitHub Repository, Live Website & ReadMe Portal Hub</h2>
+                  <p class="text-xs text-slate-500 dark:text-purple-200/70">Customize your GitHub username below to generate exact copy-paste terminal commands and live deployment URLs.</p>
+                </div>
+                <button type="button" onclick="window.gpNavigate('dashboard')" class="px-3.5 py-2 rounded-xl border border-slate-300 dark:border-gp-border text-xs font-semibold">← Back to App</button>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div>
+                  <label class="block text-xs font-medium mb-1">Your GitHub Username</label>
+                  <input id="pub-gh-user" type="text" value="your-username" oninput="window.gpUpdatePublishUrls()" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1">Repository Name</label>
+                  <input id="pub-gh-repo" type="text" value="globalpay-2.0" oninput="window.gpUpdatePublishUrls()" class="w-full px-3 py-2 rounded-xl text-xs font-mono bg-slate-100 dark:bg-gp-bg border border-slate-300 dark:border-gp-border" />
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <!-- STEP 1: GITHUB -->
+              <div class="glass-panel rounded-2xl p-5 space-y-3 flex flex-col justify-between">
+                <div class="space-y-2">
+                  <div class="text-xs font-mono uppercase text-purple-400 font-bold">Step 1 • GitHub Repository</div>
+                  <h3 class="text-base font-bold">Push Code & README.md</h3>
+                  <p class="text-xs text-slate-500 dark:text-purple-200/70">Unzip <code class="font-mono">globalpay-2.0-fullstack.zip</code> and run these commands (or run <code class="font-mono">bash scripts/publish-github.sh</code>):</p>
+                  <pre id="pub-git-cmds" class="p-3 rounded-xl bg-slate-900 text-emerald-300 font-mono text-[11px] overflow-x-auto leading-relaxed">unzip globalpay-2.0-fullstack.zip && cd globalpay-2.0
+git init && git branch -M main
+git add .
+git commit -m "feat: publish GlobalPay 2.0 full-stack fintech app"
+git remote add origin https://github.com/your-username/globalpay-2.0.git
+git push -u origin main</pre>
+                </div>
+                <button type="button" onclick="window.gpCopySnippet('pub-git-cmds', 'GitHub push commands')" class="w-full py-2 rounded-xl bg-gp-electric text-white text-xs font-semibold hover:bg-gp-violet">
+                  Copy GitHub Push Commands
+                </button>
+              </div>
+
+              <!-- STEP 2: LIVE WEBSITE -->
+              <div class="glass-panel rounded-2xl p-5 space-y-3 flex flex-col justify-between">
+                <div class="space-y-2">
+                  <div class="text-xs font-mono uppercase text-emerald-400 font-bold">Step 2 • Live Website</div>
+                  <h3 class="text-base font-bold">GitHub Pages, Render or Vercel</h3>
+                  <p class="text-xs text-slate-500 dark:text-purple-200/70">Your ZIP includes <code class="font-mono">.github/workflows/deploy-pages.yml</code>, <code class="font-mono">render.yaml</code>, <code class="font-mono">vercel.json</code>, and <code class="font-mono">netlify.toml</code>.</p>
+                  <div class="p-3 rounded-xl bg-slate-100 dark:bg-gp-bg text-xs space-y-1.5">
+                    <div><strong>1. GitHub Pages (Free Static App):</strong> Go to <em>Settings → Pages → Source: GitHub Actions</em>. Live URL:</div>
+                    <div id="pub-pages-url" class="font-mono text-[11px] text-emerald-400 break-all">https://your-username.github.io/globalpay-2.0/</div>
+                    <div class="pt-1"><strong>2. Render Full-Stack Blueprint:</strong> Connect repo at Render.com → <em>New Blueprint</em> to deploy PostgreSQL + <code class="font-mono">/api/v1</code> Node API + Web UI.</div>
+                  </div>
+                </div>
+                <button type="button" onclick="window.gpCopySnippet('pub-pages-url', 'Live GitHub Pages Website URL')" class="w-full py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500">
+                  Copy Live Website URL
+                </button>
+              </div>
+
+              <!-- STEP 3: RENDER.COM & POLYGLOT SOURCE MODULES -->
+              <div class="glass-panel rounded-2xl p-5 space-y-3 flex flex-col justify-between">
+                <div class="space-y-2">
+                  <div class="text-xs font-mono uppercase text-amber-400 font-bold">Step 3 • Render.com & Multi-Language Code</div>
+                  <h3 class="text-base font-bold">Deploy on Render + Edit Any Language</h3>
+                  <p class="text-xs text-slate-500 dark:text-purple-200/70">Your ZIP includes <code class="font-mono">render.yaml</code> plus editable source code in TypeScript/Node, Python, Java, SQL, and HTML/CSS:</p>
+                  <pre id="pub-readme-cmds" class="p-3 rounded-xl bg-slate-900 text-amber-200 font-mono text-[11px] overflow-x-auto leading-relaxed"># 1. Deploy on Render.com:
+# Dashboard -> New + -> Blueprint -> Connect GitHub Repo
+
+# 2. Customize & Rebuild Locally:
+python3 tools/python_generators/rebuild_project.py
+python3 services/python_analytics/ledger_engine.py
+javac services/java_settlement/src/com/globalpay/settlement/*.java</pre>
+                </div>
+                <button type="button" onclick="window.gpCopySnippet('pub-readme-cmds', 'Render & Polyglot build commands')" class="w-full py-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-semibold hover:bg-amber-500/30">
+                  Copy Render & Build Commands
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderAll() {
+        renderShellHeader();
+        window.gpRenderNav();
+        const viewport = document.getElementById('screen-viewport');
+        if (!viewport) return;
+
+        const renderers = {
+          welcome: renderWelcomeScreen,
+          auth: renderAuthScreen,
+          dashboard: renderDashboardScreen,
+          qr: renderQrScreen,
+          domestic: renderDomesticScreen,
+          requests: renderRequestsScreen,
+          splits: renderSplitsScreen,
+          intl: renderIntlScreen,
+          converter: renderConverterScreen,
+          recipients: renderRecipientsScreen,
+          quote_review: renderQuoteReviewScreen,
+          payment_result: renderPaymentResultScreen,
+          receipt: renderReceiptScreen,
+          activity: renderActivityScreen,
+          insights: renderInsightsScreen,
+          budgets: renderBudgetsScreen,
+          notifications: renderNotificationsScreen,
+          profile: renderProfileScreen,
+          copilot: renderCopilotScreen,
+          corridors: renderCorridorsScreen,
+          support: renderSupportScreen,
+          admin: renderAdminScreen,
+          publish_hub: renderPublishHubScreen
+        };
+
+        const fn = renderers[state.currentScreen] || renderDashboardScreen;
+        viewport.innerHTML = fn();
+
+        if (state.currentScreen === 'insights') {
+          setTimeout(mountSpendChart, 20);
+        }
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+          window.lucide.createIcons();
+        }
+      }
+
+      window.addEventListener('DOMContentLoaded', () => {
+        renderAll();
+      });
+      renderAll();
+    })();
+  </script>
+</body>
+</html>
